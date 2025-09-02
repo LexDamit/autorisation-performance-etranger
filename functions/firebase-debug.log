@@ -1,0 +1,71 @@
+[debug] [2025-09-01T14:10:33.299Z] ----------------------------------------------------------------------
+[debug] [2025-09-01T14:10:33.302Z] Command:       /usr/local/bin/firebase /Users/lexdamit/.cache/firebase/tools/lib/node_modules/firebase-tools/lib/bin/firebase functions:shell
+[debug] [2025-09-01T14:10:33.303Z] CLI Version:   13.33.0
+[debug] [2025-09-01T14:10:33.303Z] Platform:      darwin
+[debug] [2025-09-01T14:10:33.304Z] Node Version:  v18.5.0
+[debug] [2025-09-01T14:10:33.309Z] Time:          Mon Sep 01 2025 16:10:33 GMT+0200 (Central European Summer Time)
+[debug] [2025-09-01T14:10:33.310Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2025-09-01T14:10:33.654Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-09-01T14:10:33.655Z] > authorizing via signed-in user (lex.damit@fla.lu)
+[debug] [2025-09-01T14:10:33.655Z] [iam] checking project athleteautorisation for permissions ["firebase.projects.get"]
+[debug] [2025-09-01T14:10:33.658Z] Checked if tokens are valid: true, expires at: 1756739192262
+[debug] [2025-09-01T14:10:33.658Z] Checked if tokens are valid: true, expires at: 1756739192262
+[debug] [2025-09-01T14:10:33.660Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/athleteautorisation:testIamPermissions [none]
+[debug] [2025-09-01T14:10:33.660Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/athleteautorisation:testIamPermissions x-goog-quota-user=projects/athleteautorisation
+[debug] [2025-09-01T14:10:33.660Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/athleteautorisation:testIamPermissions {"permissions":["firebase.projects.get"]}
+[debug] [2025-09-01T14:10:33.958Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/athleteautorisation:testIamPermissions 200
+[debug] [2025-09-01T14:10:33.959Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/athleteautorisation:testIamPermissions {"permissions":["firebase.projects.get"]}
+[warn] ⚠  functions: Functions Emulator unable to start on port 5000, starting on 5001 instead. {"metadata":{"emulator":{"name":"functions"},"message":"Functions Emulator unable to start on port 5000, starting on 5001 instead."}}
+[debug] [2025-09-01T14:10:34.494Z] [functions] Functions Emulator only supports listening on one address (127.0.0.1). Not listening on ::1
+[debug] [2025-09-01T14:10:34.498Z] defaultcredentials: writing to file /Users/lexdamit/.config/firebase/lex_damit_fla.lu_application_default_credentials.json
+[debug] [2025-09-01T14:10:34.501Z] DEBUG: Setting GAC to /Users/lexdamit/.config/firebase/lex_damit_fla.lu_application_default_credentials.json
+[debug] [2025-09-01T14:10:34.501Z] Checked if tokens are valid: true, expires at: 1756739192262
+[debug] [2025-09-01T14:10:34.502Z] Checked if tokens are valid: true, expires at: 1756739192262
+[debug] [2025-09-01T14:10:34.502Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/athleteautorisation/adminSdkConfig [none]
+[debug] [2025-09-01T14:10:34.943Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/athleteautorisation/adminSdkConfig 200
+[debug] [2025-09-01T14:10:34.943Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/athleteautorisation/adminSdkConfig {"projectId":"athleteautorisation","storageBucket":"athleteautorisation.firebasestorage.app"}
+[debug] [2025-09-01T14:10:34.985Z] [functions] Watching "/Users/lexdamit/athlete-authorisation-app/functions" for Cloud Functions...
+[debug] [2025-09-01T14:10:34.994Z] Validating nodejs source
+[warn] ⚠  functions: package.json indicates an outdated version of firebase-functions. Please upgrade using npm install --save firebase-functions@latest in your functions directory. 
+[debug] [2025-09-01T14:10:36.148Z] > [functions] package.json contents: {
+  "name": "functions",
+  "description": "Cloud Functions for Firebase",
+  "scripts": {
+    "serve": "firebase emulators:start --only functions",
+    "shell": "firebase functions:shell",
+    "start": "npm run shell",
+    "deploy": "firebase deploy --only functions",
+    "logs": "firebase functions:log"
+  },
+  "engines": {
+    "node": "22"
+  },
+  "main": "index.js",
+  "dependencies": {
+    "dotenv": "^17.2.1",
+    "firebase-admin": "^12.7.0",
+    "firebase-functions": "^6.3.2",
+    "nodemailer": "^7.0.4"
+  },
+  "devDependencies": {
+    "firebase-functions-test": "^3.1.0"
+  },
+  "private": true
+}
+[debug] [2025-09-01T14:10:36.148Z] Building nodejs source
+[debug] [2025-09-01T14:10:36.149Z] Failed to find version of module node: reached end of search path /Users/lexdamit/athlete-authorisation-app/functions/node_modules
+[warn] ⚠  functions: You've requested "node" version "22", but the standalone Firebase CLI comes with bundled Node "18". 
+[info] ✔  functions: To use a different Node.js version, consider removing the standalone Firebase CLI and switching to "firebase-tools" on npm. 
+[info] i  functions: Loaded environment variables from .env. 
+[debug] [2025-09-01T14:10:36.156Z] Could not find functions.yaml. Must use http discovery
+[debug] [2025-09-01T14:10:36.169Z] Found firebase-functions binary at '/Users/lexdamit/athlete-authorisation-app/functions/node_modules/.bin/firebase-functions'
+[info] Serving at port 8323
+
+[info] [dotenv@17.2.1] injecting env (2) from .env -- tip: ⚙️  override existing env vars with { override: true }
+
+[debug] [2025-09-01T14:10:37.425Z] Got response from /__/functions.yaml {"endpoints":{"sendPerformanceEmail":{"availableMemoryMb":null,"timeoutSeconds":null,"minInstances":null,"maxInstances":null,"ingressSettings":null,"concurrency":null,"serviceAccountEmail":null,"vpc":null,"platform":"gcfv2","labels":{},"httpsTrigger":{},"entryPoint":"sendPerformanceEmail"}},"specVersion":"v1alpha1","requiredAPIs":[],"extensions":{}}
+[debug] [2025-09-01T14:10:37.486Z] [functions] Loaded functions definitions from source: sendPerformanceEmail.
+[debug] [2025-09-01T14:10:37.488Z] [functions[us-central1-sendPerformanceEmail]] http function initialized (http://127.0.0.1:5001/athleteautorisation/us-central1/sendPerformanceEmail).
+[info] i  functions: Loaded functions: sendPerformanceEmail 
+[warn] ⚠  functions: The following emulators are not running, calls to these services will affect production: firestore, database, pubsub, storage, eventarc, tasks 
