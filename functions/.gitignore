@@ -1,2 +1,4 @@
-t helpnode_modules/
-*.local
+node_modules/
+.env
+.DS_Store
+functions/node_modules/
