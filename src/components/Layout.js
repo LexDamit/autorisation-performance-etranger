@@ -13,15 +13,15 @@ function Layout({ children, user, userProfile, currentPage, onPageChange, onLogo
               component="img"
               src="/federation_logo.png"
               alt="Federation Logo"
-              sx={{ height: 100, width: 100, objectFit: 'contain', mr: 3 }}
+              sx={{ height: { xs: 55, sm: 100 }, width: { xs: 55, sm: 100 }, objectFit: 'contain', mr: { xs: 1, sm: 3 } }}
             />
-            <Typography variant="h6" fontWeight="bold">
+            <Typography variant="h6" fontWeight="bold" sx={{ fontSize: { xs: '0.95rem', sm: '1.25rem' } }}>
               Performances à l'étranger
             </Typography>
           </Box>
 
           {user && (
-            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+            <Box sx={{ display: 'flex', gap: { xs: 1, sm: 2 }, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
               <Button
                 variant={currentPage === 'authorisation' ? 'contained' : 'outlined'}
                 onClick={() => onPageChange('authorisation')}

@@ -378,6 +378,7 @@ const AuthorisationForm = () => {
 
           <TextField
             fullWidth
+            required
             label="Site internet"
             value={comp.site}
             onChange={(e) => handleCompetitionChange(compIndex, 'site', e.target.value)}

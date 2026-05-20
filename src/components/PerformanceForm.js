@@ -137,6 +137,7 @@ const PerformanceForm = () => {
       if (!c.country?.trim()) next[b('country')] = requiredMsg;
       if (!c.date) next[b('date')] = requiredMsg;
       if (!c.type) next[b('type')] = requiredMsg;
+      if (!c.site?.trim()) next[b('site')] = requiredMsg;
 
       c.athletes.forEach((a, j) => {
         const ab = (k) => `competitions[${i}].athletes[${j}].${k}`;
@@ -344,9 +345,12 @@ const PerformanceForm = () => {
             <Grid item xs={12} md={4}>
               <TextField
                 fullWidth
+                required
                 label="Site internet"
                 value={comp.site}
                 onChange={(e) => handleCompetitionChange(compIndex, 'site', e.target.value)}
+                error={hasError(`competitions[${compIndex}].site`)}
+                helperText={getError(`competitions[${compIndex}].site`)}
               />
             </Grid>
           </Grid>
@@ -447,8 +451,8 @@ const PerformanceForm = () => {
                         onInputChange={(event, v) =>
                           handlePerformanceChange(compIndex, athIndex, perfIndex, 'event', v)
                         }
-                        ListboxProps={{ sx: { maxHeight: 400, minWidth: 400 } }}
-                        sx={{ minWidth: 400 }}
+                        ListboxProps={{ sx: { maxHeight: 400 } }}
+                        fullWidth
                         renderInput={(params) => (
                           <TextField
                             {...params}
