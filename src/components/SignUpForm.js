@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { auth, db } from '../firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { TextField, Button, Box, Typography } from '@mui/material';
 
 function SignUpForm({ onSignUp }) {
@@ -12,17 +12,22 @@ function SignUpForm({ onSignUp }) {
 
   const handleSignUp = async (e) => {
     e.preventDefault();
+
     try {
       const userCred = await createUserWithEmailAndPassword(auth, email, password);
-      // Save additional info
+
       await setDoc(doc(db, 'users', userCred.user.uid), {
         email,
         club,
-        athleteName
+        athleteName,
+        role: 'user',
+        createdAt: serverTimestamp(),
       });
-      alert("Account created!");
+
+      alert('Account created!');
       onSignUp();
     } catch (error) {
+      console.error(error);
       alert(error.message);
     }
   };
@@ -30,12 +35,44 @@ function SignUpForm({ onSignUp }) {
   return (
     <Box sx={{ maxWidth: 400, mx: 'auto', mt: 5 }}>
       <Typography variant="h5" gutterBottom>Sign Up</Typography>
+
       <form onSubmit={handleSignUp}>
-        <TextField fullWidth margin="normal" label="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
-        <TextField fullWidth margin="normal" type="password" label="Password" value={password} onChange={(e) => setPassword(e.target.value)} />
-        <TextField fullWidth margin="normal" label="Club" value={club} onChange={(e) => setClub(e.target.value)} />
-        <TextField fullWidth margin="normal" label="Athlete Name" value={athleteName} onChange={(e) => setAthleteName(e.target.value)} />
-        <Button fullWidth variant="contained" type="submit">Sign Up</Button>
+        <TextField
+          fullWidth
+          margin="normal"
+          label="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+
+        <TextField
+          fullWidth
+          margin="normal"
+          type="password"
+          label="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+
+        <TextField
+          fullWidth
+          margin="normal"
+          label="Club"
+          value={club}
+          onChange={(e) => setClub(e.target.value)}
+        />
+
+        <TextField
+          fullWidth
+          margin="normal"
+          label="Athlete Name"
+          value={athleteName}
+          onChange={(e) => setAthleteName(e.target.value)}
+        />
+
+        <Button fullWidth variant="contained" type="submit">
+          Sign Up
+        </Button>
       </form>
     </Box>
   );

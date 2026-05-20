@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import {
   Box, TextField, Button, Select, MenuItem, FormControl, InputLabel,
-  Typography, Grid, IconButton, Chip, FormHelperText, Tooltip, InputAdornment
+  Typography, Grid, IconButton, Chip, FormHelperText, Tooltip, InputAdornment, CircularProgress
 } from '@mui/material';
 import { Delete as DeleteIcon, InfoOutlined as InfoOutlinedIcon } from '@mui/icons-material';
 import Autocomplete from '@mui/material/Autocomplete';
+import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { auth, db } from '../firebase';
 import epreuves from '../data/epreuves.json';
 
 const clubs = [
@@ -22,6 +24,7 @@ const PerformanceForm = () => {
   const [email, setEmail] = useState('');
   const [ccInput, setCcInput] = useState('');
   const [emailsCc, setEmailsCc] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   const [competitions, setCompetitions] = useState([
     {
@@ -36,7 +39,6 @@ const PerformanceForm = () => {
     }
   ]);
 
-  // Validation state
   const [errors, setErrors] = useState({});
   const hasError = (key) => Boolean(errors[key]);
   const getError = (key) => errors[key] || '';
@@ -44,36 +46,38 @@ const PerformanceForm = () => {
   const requiredMsg = 'Obligatoire';
   const isValidEmail = (val) => /\S+@\S+\.\S+/.test(val);
 
-  // CC helpers
   const addCcEmail = () => {
     if (!ccInput) return;
     if (isValidEmail(ccInput)) {
-      setEmailsCc([...emailsCc, ccInput]);
+      if (!emailsCc.includes(ccInput)) {
+        setEmailsCc([...emailsCc, ccInput]);
+      }
       setCcInput('');
     } else {
       alert('Adresse email invalide !');
     }
   };
+
   const removeCcEmail = (index) => setEmailsCc(emailsCc.filter((_, i) => i !== index));
 
-  // Change helpers
   const handleCompetitionChange = (index, field, value) => {
     const updated = [...competitions];
     updated[index][field] = value;
     setCompetitions(updated);
   };
+
   const handleAthleteChange = (compIndex, athleteIndex, field, value) => {
     const updated = [...competitions];
     updated[compIndex].athletes[athleteIndex][field] = value;
     setCompetitions(updated);
   };
+
   const handlePerformanceChange = (compIndex, athleteIndex, perfIndex, field, value) => {
     const updated = [...competitions];
     updated[compIndex].athletes[athleteIndex].performances[perfIndex][field] = value;
     setCompetitions(updated);
   };
 
-  // CRUD helpers
   const addCompetition = () => {
     setCompetitions([
       ...competitions,
@@ -89,6 +93,7 @@ const PerformanceForm = () => {
       }
     ]);
   };
+
   const removeCompetition = (index) => setCompetitions(competitions.filter((_, i) => i !== index));
 
   const addAthlete = (compIndex) => {
@@ -99,6 +104,7 @@ const PerformanceForm = () => {
     });
     setCompetitions(updated);
   };
+
   const removeAthlete = (compIndex, athleteIndex) => {
     const updated = [...competitions];
     updated[compIndex].athletes = updated[compIndex].athletes.filter((_, i) => i !== athleteIndex);
@@ -110,6 +116,7 @@ const PerformanceForm = () => {
     updated[compIndex].athletes[athleteIndex].performances.push({ event: '', result: '', wind: '', rank: '' });
     setCompetitions(updated);
   };
+
   const removePerformance = (compIndex, athleteIndex, perfIndex) => {
     const updated = [...competitions];
     updated[compIndex].athletes[athleteIndex].performances =
@@ -117,11 +124,9 @@ const PerformanceForm = () => {
     setCompetitions(updated);
   };
 
-  // Validation
   const validate = () => {
     const next = {};
 
-    // Email & Club
     if (!email || !isValidEmail(email)) next['email'] = 'Adresse email invalide';
     if (!club || club === '-') next['club'] = requiredMsg;
 
@@ -132,7 +137,6 @@ const PerformanceForm = () => {
       if (!c.country?.trim()) next[b('country')] = requiredMsg;
       if (!c.date) next[b('date')] = requiredMsg;
       if (!c.type) next[b('type')] = requiredMsg;
-      // site: optional
 
       c.athletes.forEach((a, j) => {
         const ab = (k) => `competitions[${i}].athletes[${j}].${k}`;
@@ -149,7 +153,6 @@ const PerformanceForm = () => {
           const epreuve = epreuves.find((e) => e.discipline === p.event);
           const requiresWind = typeComp === 'outdoor' && epreuve?.ventObligatoire;
           if (requiresWind && !p.wind?.trim()) next[pb('wind')] = requiredMsg;
-          // rank is optional
         });
       });
     });
@@ -160,20 +163,50 @@ const PerformanceForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
+
     if (!validate()) {
       alert('Veuillez corriger les champs obligatoires.');
+      setLoading(false);
       return;
     }
 
     const payload = { email, club, emailsCc, competitions };
+
     try {
+      await addDoc(collection(db, 'performanceDeclarations'), {
+        ...payload,
+        createdAt: serverTimestamp(),
+        createdBy: auth.currentUser?.uid || null,
+        type: 'performance',
+      });
+
       const response = await fetch('https://sendperformanceemail-t2aq3fohza-uc.a.run.app', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
+
       if (response.ok) {
         alert('Email envoyé avec succès !');
+
+        setClub('-');
+        setEmail('');
+        setCcInput('');
+        setEmailsCc([]);
+        setCompetitions([
+          {
+            name: '', place: '', country: '', date: '', site: '',
+            type: 'outdoor',
+            athletes: [
+              {
+                firstName: '', lastName: '', sex: '', category: '-',
+                performances: [{ event: '', result: '', wind: '', rank: '' }]
+              }
+            ]
+          }
+        ]);
+        setErrors({});
       } else {
         const errorText = await response.text();
         alert(`Erreur: ${errorText}`);
@@ -182,6 +215,8 @@ const PerformanceForm = () => {
       console.error('Erreur réseau:', error);
       alert('Échec de l’envoi de l’email.');
     }
+
+    setLoading(false);
   };
 
   return (
@@ -190,9 +225,8 @@ const PerformanceForm = () => {
       <Typography variant="h5" fontWeight="bold">Fiche performances à l'étranger</Typography>
 
       <Grid container spacing={2}>
-        {/* Club (required) */}
         <Grid item xs={12} md={6}>
-          <FormControl fullWidth required error={hasError('club')}>
+          <FormControl fullWidth required error={hasError('club')} sx={{ minWidth: 280 }}>
             <InputLabel id="club-label">Club</InputLabel>
             <Select
               labelId="club-label"
@@ -205,11 +239,9 @@ const PerformanceForm = () => {
                 <MenuItem key={c} value={c}>{c}</MenuItem>
               ))}
             </Select>
-            <FormHelperText>{getError('club')}</FormHelperText>
           </FormControl>
         </Grid>
 
-        {/* Email (required) */}
         <Grid item xs={12} md={6}>
           <TextField
             fullWidth
@@ -222,7 +254,6 @@ const PerformanceForm = () => {
           />
         </Grid>
 
-        {/* CC emails (optional) */}
         <Grid item xs={12} md={9}>
           <TextField
             fullWidth
@@ -231,9 +262,11 @@ const PerformanceForm = () => {
             onChange={(e) => setCcInput(e.target.value)}
           />
         </Grid>
+
         <Grid item xs={12} md={3}>
-          <Button fullWidth variant="outlined" onClick={addCcEmail}>+ Ajouter</Button>
+          <Button fullWidth variant="outlined" onClick={addCcEmail}>+ Ajouter Email</Button>
         </Grid>
+
         <Grid item xs={12}>
           {emailsCc.map((mail, idx) => (
             <Chip key={idx} label={mail} onDelete={() => removeCcEmail(idx)} sx={{ mr: 1, mb: 1 }} />
@@ -247,7 +280,6 @@ const PerformanceForm = () => {
             {`Compétition ${compIndex + 1} : ${comp.name || ''}`}
           </Typography>
 
-          {/* Nom comp. (required) */}
           <TextField
             fullWidth required
             label="Nom de la compétition"
@@ -258,7 +290,6 @@ const PerformanceForm = () => {
             sx={{ my: 1 }}
           />
 
-          {/* Lieu (required) */}
           <TextField
             fullWidth required
             label="Lieu de la compétition"
@@ -269,7 +300,6 @@ const PerformanceForm = () => {
             sx={{ my: 1 }}
           />
 
-          {/* Pays (required) */}
           <TextField
             fullWidth required
             label="Pays"
@@ -277,11 +307,10 @@ const PerformanceForm = () => {
             onChange={(e) => handleCompetitionChange(compIndex, 'country', e.target.value)}
             error={hasError(`competitions[${compIndex}].country`)}
             helperText={getError(`competitions[${compIndex}].country`)}
-            sx={{ my: 1 }}
+            sx={{ my: 2 }}
           />
 
           <Grid container spacing={2}>
-            {/* Date (required) */}
             <Grid item xs={12} md={4}>
               <TextField
                 fullWidth required
@@ -295,7 +324,6 @@ const PerformanceForm = () => {
               />
             </Grid>
 
-            {/* Type (required) */}
             <Grid item xs={12} md={4}>
               <FormControl fullWidth required error={hasError(`competitions[${compIndex}].type`)}>
                 <InputLabel id={`type-label-${compIndex}`}>Type</InputLabel>
@@ -313,7 +341,6 @@ const PerformanceForm = () => {
               </FormControl>
             </Grid>
 
-            {/* Site internet (optional) */}
             <Grid item xs={12} md={4}>
               <TextField
                 fullWidth
@@ -327,10 +354,9 @@ const PerformanceForm = () => {
           {comp.athletes.map((ath, athIndex) => (
             <Box
               key={athIndex}
-              sx={{ mt: 2, p: 2, border: '1px solid #eee', borderRadius: 2, backgroundColor: '#f9f9f9' }}
+              sx={{ mt: 2, p: 2, mb: 2, border: '1px solid #eee', borderRadius: 2, backgroundColor: '#f9f9f9' }}
             >
               <Grid container spacing={2}>
-                {/* Prénom (required) */}
                 <Grid item xs={6}>
                   <TextField
                     fullWidth required
@@ -341,7 +367,7 @@ const PerformanceForm = () => {
                     helperText={getError(`competitions[${compIndex}].athletes[${athIndex}].firstName`)}
                   />
                 </Grid>
-                {/* Nom (required) */}
+
                 <Grid item xs={6}>
                   <TextField
                     fullWidth required
@@ -354,7 +380,6 @@ const PerformanceForm = () => {
                 </Grid>
               </Grid>
 
-              {/* Sexe (required) */}
               <Grid container spacing={2} alignItems="center" sx={{ mt: 1 }}>
                 <Grid item>
                   <Button
@@ -365,6 +390,7 @@ const PerformanceForm = () => {
                     F
                   </Button>
                 </Grid>
+
                 <Grid item>
                   <Button
                     variant={ath.sex === 'M' ? 'contained' : 'outlined'}
@@ -374,31 +400,32 @@ const PerformanceForm = () => {
                     M
                   </Button>
                 </Grid>
-                <Grid item xs={20} md={8}>
-                  <FormControl
-                  fullWidth
-                  required
-                  error={hasError(`competitions[${compIndex}].athletes[${athIndex}].category`)}
-                  sx={{ minWidth: 250 }} // or width: 300
-                >
-                  <InputLabel id={`cat-label-${compIndex}-${athIndex}`}>Catégorie</InputLabel>
-                  <Select
-                    labelId={`cat-label-${compIndex}-${athIndex}`}
-                    label="Catégorie"
-                    value={ath.category}
-                    onChange={(e) => handleAthleteChange(compIndex, athIndex, 'category', e.target.value)}
-                  >
-                    {categories.map((c) => (
-                      <MenuItem key={c} value={c}>{c}</MenuItem>
-                    ))}
-                  </Select>
-                  <FormHelperText>
-                    {getError(`competitions[${compIndex}].athletes[${athIndex}].category`)}
-                  </FormHelperText>
-                </FormControl>
 
+                <Grid item xs={12} md={8}>
+                  <FormControl
+                    fullWidth
+                    required
+                    error={hasError(`competitions[${compIndex}].athletes[${athIndex}].category`)}
+                    sx={{ minWidth: 250 }}
+                  >
+                    <InputLabel id={`cat-label-${compIndex}-${athIndex}`}>Catégorie</InputLabel>
+                    <Select
+                      labelId={`cat-label-${compIndex}-${athIndex}`}
+                      label="Catégorie"
+                      value={ath.category}
+                      onChange={(e) => handleAthleteChange(compIndex, athIndex, 'category', e.target.value)}
+                    >
+                      {categories.map((c) => (
+                        <MenuItem key={c} value={c}>{c}</MenuItem>
+                      ))}
+                    </Select>
+                    <FormHelperText>
+                      {getError(`competitions[${compIndex}].athletes[${athIndex}].category`)}
+                    </FormHelperText>
+                  </FormControl>
                 </Grid>
               </Grid>
+
               {hasError(`competitions[${compIndex}].athletes[${athIndex}].sex`) && (
                 <FormHelperText error>Sexe obligatoire</FormHelperText>
               )}
@@ -409,7 +436,6 @@ const PerformanceForm = () => {
                   sx={{ p: 2, mb: 1, border: '1px solid #ddd', borderRadius: 1, backgroundColor: '#f5f5f5' }}
                 >
                   <Grid container spacing={2} alignItems="center">
-                    {/* Épreuve (required with Autocomplete) */}
                     <Grid item xs={12}>
                       <Autocomplete
                         freeSolo
@@ -436,7 +462,6 @@ const PerformanceForm = () => {
                       />
                     </Grid>
 
-                    {/* Performance (required) */}
                     <Grid item xs={12} md={4}>
                       <TextField
                         fullWidth required
@@ -450,7 +475,6 @@ const PerformanceForm = () => {
                       />
                     </Grid>
 
-                    {/* Vent (editable for created events; required only when known + ventObligatoire) */}
                     <Grid item xs={12} md={4}>
                       {(() => {
                         const typeComp = comp.type ?? 'outdoor';
@@ -458,7 +482,6 @@ const PerformanceForm = () => {
                         const epreuve = epreuves.find((e) => e.discipline === perf.event);
                         const isCustomEvent = perf.event && !options.includes(perf.event);
 
-                        // Show field if outdoor and (known with wind OR custom event). Otherwise show disabled '/'
                         const showWindField = typeComp === 'outdoor' && (epreuve?.ventObligatoire || isCustomEvent);
                         const windRequired = typeComp === 'outdoor' && Boolean(epreuve?.ventObligatoire);
                         const path = `competitions[${compIndex}].athletes[${athIndex}].performances[${perfIndex}].wind`;
@@ -513,7 +536,6 @@ const PerformanceForm = () => {
                       })()}
                     </Grid>
 
-                    {/* Classement (optional) */}
                     <Grid item xs={12} md={2}>
                       <TextField
                         fullWidth
@@ -525,7 +547,6 @@ const PerformanceForm = () => {
                       />
                     </Grid>
 
-                    {/* Delete performance */}
                     <Grid item xs={12} md={2}>
                       <IconButton onClick={() => removePerformance(compIndex, athIndex, perfIndex)}>
                         <DeleteIcon />
@@ -568,7 +589,31 @@ const PerformanceForm = () => {
       ))}
 
       <Button variant="contained" onClick={addCompetition}>Ajouter Compétition</Button>
-      <Button type="submit" variant="contained" color="success">Envoyer</Button>
+
+      <Box sx={{ position: 'relative', display: 'inline-flex', mt: 2 }}>
+        <Button
+          type="submit"
+          variant="contained"
+          color="success"
+          disabled={loading}
+        >
+          Envoyer
+        </Button>
+
+        {loading && (
+          <CircularProgress
+            size={24}
+            sx={{
+              color: 'success.main',
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              marginTop: '-12px',
+              marginLeft: '-12px',
+            }}
+          />
+        )}
+      </Box>
     </Box>
   );
 };
