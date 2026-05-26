@@ -1,0 +1,95 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── helpers ─────────────────────────────────────────────────────────────
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    function myRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    function isAdmin() {
+      return isAuth() && myRole() == 'admin';
+    }
+
+    function isFedStaff() {
+      return isAuth() && myRole() in ['admin', 'federation_staff'];
+    }
+
+    function myClub() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.club;
+    }
+
+    // ── users ────────────────────────────────────────────────────────────────
+    match /users/{userId} {
+
+      // Anyone can read their own doc; admins + fed staff can read all
+      allow read: if isAuth() && (request.auth.uid == userId || isFedStaff());
+
+      // New accounts can only be created with role = 'athlete'
+      // (the client sets it; the rule enforces it can never be anything else on create)
+      allow create: if isAuth()
+                    && request.auth.uid == userId
+                    && request.resource.data.role == 'athlete';
+
+      // Self-update: allowed only for non-role fields.
+      // The role must stay identical to what it already is.
+      allow update: if isAuth()
+                    && request.auth.uid == userId
+                    && request.resource.data.role == resource.data.role;
+
+      // Admin updating ANOTHER user: anything goes (including role changes).
+      // Admins CANNOT change their own role — that case is covered above
+      // (same-user path), which blocks role changes for everyone including admins.
+      allow update: if isAdmin() && request.auth.uid != userId;
+
+      allow delete: if isAdmin();
+    }
+
+    // ── authorisation requests ───────────────────────────────────────────────
+    match /authorisationRequests/{docId} {
+
+      allow read: if isAuth() && (
+        resource.data.createdBy == request.auth.uid ||
+        isFedStaff() ||
+        (myRole() == 'club' && resource.data.clubId == myClub())
+      );
+
+      // Any authenticated user may submit a request
+      allow create: if isAuth();
+
+      // Fed staff / admin can update (accept/reject).
+      // Creator can update only while still pending (e.g. cancel).
+      allow update: if isAuth() && (
+        isFedStaff() ||
+        (resource.data.createdBy == request.auth.uid
+          && resource.data.status == 'pending')
+      );
+
+      allow delete: if isAdmin();
+    }
+
+    // ── performance declarations ─────────────────────────────────────────────
+    match /performanceDeclarations/{docId} {
+
+      allow read: if isAuth() && (
+        resource.data.createdBy == request.auth.uid ||
+        isFedStaff() ||
+        (myRole() == 'club' && resource.data.clubId == myClub())
+      );
+
+      allow create: if isAuth();
+
+      // Fed staff can update SELTEC status; creator can update their own doc.
+      allow update: if isAuth() && (
+        isFedStaff() ||
+        resource.data.createdBy == request.auth.uid
+      );
+
+      allow delete: if isAdmin();
+    }
+  }
+}
