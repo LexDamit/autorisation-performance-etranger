@@ -164,6 +164,21 @@ const AuthorisationForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Validate: every athlete must have at least one non-empty event
+    for (const [ci, comp] of competitions.entries()) {
+      for (const ath of comp.athletes || []) {
+        const hasEvent = (ath.events || []).some(ev => ev.trim() !== '');
+        if (!hasEvent) {
+          alert(
+            `Veuillez renseigner au moins une épreuve pour ${ath.firstName || 'l\'athlète'} ${ath.lastName || ''} ` +
+            `dans la compétition « ${comp.name || `n°${ci + 1}`} ».`
+          );
+          return;
+        }
+      }
+    }
+
     setLoading(true);
 
     const payload = {
@@ -428,6 +443,7 @@ const AuthorisationForm = () => {
                       <TextField
                         fullWidth
                         size="small"
+                        required
                         placeholder="ex: 100m"
                         value={evt}
                         onChange={(e) =>
