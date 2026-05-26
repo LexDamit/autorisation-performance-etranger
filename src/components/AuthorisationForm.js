@@ -95,13 +95,6 @@ const AuthorisationForm = () => {
     setCompetitions(updated);
   };
 
-  const removeDate = (compIndex, dateIndex) => {
-    const updated = [...competitions];
-    updated[compIndex].dates = updated[compIndex].dates.filter((_, i) => i !== dateIndex);
-    if (updated[compIndex].dates.length === 0) updated[compIndex].dates = [''];
-    setCompetitions(updated);
-  };
-
   const handleAthleteChange = (compIndex, athleteIndex, field, value) => {
     const updated = [...competitions];
     updated[compIndex].athletes[athleteIndex][field] = value;
