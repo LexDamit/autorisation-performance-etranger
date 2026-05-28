@@ -5,8 +5,6 @@
   { "discipline": "60 m", "ventObligatoire": true },
   { "discipline": "60mH (0,65-0,70m)", "ventObligatoire": true },
   { "discipline": "60mH (0,762m)", "ventObligatoire": false },
-  { "discipline": "60mH (0,762m)", "ventObligatoire": true },
-  { "discipline": "60mH (0,762m)", "ventObligatoire": true },
   { "discipline": "60mH (0,838m)", "ventObligatoire": false },
   { "discipline": "60mH (0,914m)", "ventObligatoire": false },
   { "discipline": "60mH (0,991m)", "ventObligatoire": false },
@@ -18,13 +16,9 @@
   { "discipline": "100 m", "ventObligatoire": true },
   { "discipline": "100mH (0,762m)", "ventObligatoire": true },
   { "discipline": "100mH (0,838m)", "ventObligatoire": true },
-  { "discipline": "100mH (0,838m)", "ventObligatoire": true },
-  { "discipline": "100mH (0,838m)", "ventObligatoire": true },
   { "discipline": "4x100m", "ventObligatoire": false },
 
   { "discipline": "110mH (0,914m)", "ventObligatoire": true },
-  { "discipline": "110mH (0,914m)", "ventObligatoire": true },
-  { "discipline": "110mH (0,991m)", "ventObligatoire": true },
   { "discipline": "110mH (0,991m)", "ventObligatoire": true },
   { "discipline": "110mH (1,067m)", "ventObligatoire": true },
 
@@ -34,8 +28,13 @@
   { "discipline": "4x200m", "ventObligatoire": false },
 
   { "discipline": "300 m", "ventObligatoire": false },
+  { "discipline": "300mH (0,762m)", "ventObligatoire": false },
+  { "discipline": "300mH (0,838m)", "ventObligatoire": false },
 
   { "discipline": "400 m", "ventObligatoire": false },
+  { "discipline": "400mH (0,762m)", "ventObligatoire": false },
+  { "discipline": "400mH (0,838m)", "ventObligatoire": false },
+  { "discipline": "400mH (0,914m)", "ventObligatoire": false },
   { "discipline": "4x400m", "ventObligatoire": false },
 
   { "discipline": "600 m", "ventObligatoire": false },
