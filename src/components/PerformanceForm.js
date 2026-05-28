@@ -236,7 +236,7 @@ export default function PerformanceForm({ userProfile, prefill, docId, onSubmitS
 
   return (
     <Box component="form" onSubmit={handleSubmit}
-      sx={{ maxWidth: 860, mx: 'auto', display: 'flex', flexDirection: 'column', gap: 3 }}>
+      sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
 
       <Typography variant="h6" fontWeight={700}>
         {docId ? 'Compléter les résultats' : 'Nouvelle fiche de performances'}
@@ -258,12 +258,12 @@ export default function PerformanceForm({ userProfile, prefill, docId, onSubmitS
                 {hasError('club') && <FormHelperText>{getError('club')}</FormHelperText>}
               </FormControl>
             </Grid>
-            <Grid item xs={12} md={4}>
+            <Grid item xs={12} sm={6}>
               <TextField fullWidth required size="small" label="E-mail" value={email}
                 onChange={e => setEmail(e.target.value)}
                 error={hasError('email')} helperText={getError('email')} />
             </Grid>
-            <Grid item xs={12} md={8}>
+            <Grid item xs={12} sm={6}>
               <Autocomplete
                 multiple freeSolo fullWidth
                 options={[]}
@@ -458,7 +458,7 @@ export default function PerformanceForm({ userProfile, prefill, docId, onSubmitS
 
                       {/* ── Row 2 : Catégorie · Sexe ── */}
                       <Grid container spacing={1.5} alignItems="flex-start">
-                        <Grid item xs={12} sm={4}>
+                        <Grid item xs={12} sm={6}>
                           <FormControl fullWidth required size="small"
                             error={hasError(`comp[${ci}].ath[${ai}].category`)}>
                             <InputLabel>Catégorie</InputLabel>
@@ -469,7 +469,7 @@ export default function PerformanceForm({ userProfile, prefill, docId, onSubmitS
                             <FormHelperText>{getError(`comp[${ci}].ath[${ai}].category`)}</FormHelperText>
                           </FormControl>
                         </Grid>
-                        <Grid item xs={12} sm={8}>
+                        <Grid item xs={12} sm={6}>
                           <Typography variant="caption"
                             sx={{ display: 'block', mb: 0.75, fontSize: '0.78rem',
                               color: hasError(`comp[${ci}].ath[${ai}].sex`) ? 'error.main' : 'text.secondary' }}>

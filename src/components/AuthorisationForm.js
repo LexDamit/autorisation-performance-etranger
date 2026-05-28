@@ -161,7 +161,7 @@ function AthleteBlock({ ath, ci, ai, club, onUpdate, onRemove, removeDisabled, e
 
         {/* ── Row 2 : Catégorie · Sexe ── */}
         <Grid container spacing={1.5} alignItems="flex-start">
-          <Grid item xs={12} sm={4}>
+          <Grid item xs={12} sm={6}>
             <FormControl fullWidth required size="small" error={Boolean(categoryErr)}>
               <InputLabel>Catégorie</InputLabel>
               <Select value={ath.category} label="Catégorie"
@@ -171,7 +171,7 @@ function AthleteBlock({ ath, ci, ai, club, onUpdate, onRemove, removeDisabled, e
               {categoryErr && <FormHelperText>{categoryErr}</FormHelperText>}
             </FormControl>
           </Grid>
-          <Grid item xs={12} sm={8}>
+          <Grid item xs={12} sm={6}>
             <Typography variant="caption" sx={{ display: 'block', mb: 0.75, fontSize: '0.78rem', color: sexErr ? 'error.main' : 'text.secondary' }}>
               Sexe *
             </Typography>
@@ -392,7 +392,7 @@ export default function AuthorisationForm({ userProfile, onSubmitSuccess }) {
 
   return (
     <Box component="form" onSubmit={handleSubmit}
-      sx={{ maxWidth: 900, mx: 'auto', display: 'flex', flexDirection: 'column', gap: 3 }}>
+      sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
 
       <Typography variant="h6" fontWeight={700}>Nouvelle demande d'autorisation</Typography>
 
@@ -419,11 +419,11 @@ export default function AuthorisationForm({ userProfile, onSubmitSuccess }) {
               <TextField fullWidth required size="small" label="Nom du demandeur"
                 value={lastName} onChange={e => setLastName(e.target.value)} />
             </Grid>
-            <Grid item xs={12} md={4}>
+            <Grid item xs={12} sm={6}>
               <TextField fullWidth required size="small" type="email" label="Email du demandeur"
                 value={email} onChange={e => setEmail(e.target.value)} />
             </Grid>
-            <Grid item xs={12} md={8}>
+            <Grid item xs={12} sm={6}>
               <Autocomplete
                 multiple freeSolo fullWidth
                 options={[]}
