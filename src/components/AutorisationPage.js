@@ -10,7 +10,7 @@ import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon   from '@mui/icons-material/KeyboardArrowUp';
 import AssignmentOutlinedIcon from '@mui/icons-material/AssignmentOutlined';
 import {
-  collection, query, where, orderBy, getDocs,
+  collection, query, where, getDocs,
 } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 import AuthorisationForm from './AuthorisationForm';
@@ -111,28 +111,27 @@ export default function AutorisationPage({ userProfile }) {
   const role = userProfile?.role;
   const uid  = auth.currentUser?.uid;
 
+  const sortByDate = docs =>
+    [...docs].sort((a, b) => (b.data().createdAt?.seconds || 0) - (a.data().createdAt?.seconds || 0));
+
   const load = async () => {
     setLoading(true);
     try {
       let docs;
       if (role === 'federation_staff' || role === 'admin') {
-        const snap = await getDocs(query(collection(db, 'authorisationRequests'), orderBy('createdAt', 'desc')));
-        docs = snap.docs;
+        const snap = await getDocs(collection(db, 'authorisationRequests'));
+        docs = sortByDate(snap.docs);
       } else if (role === 'club') {
         // Merge two queries: by clubId (new data) + by createdBy (old data / same account)
         const [s1, s2] = await Promise.all([
-          getDocs(query(collection(db, 'authorisationRequests'),
-            where('clubId', '==', userProfile.club), orderBy('createdAt', 'desc'))),
-          getDocs(query(collection(db, 'authorisationRequests'),
-            where('createdBy', '==', uid), orderBy('createdAt', 'desc'))),
+          getDocs(query(collection(db, 'authorisationRequests'), where('clubId', '==', userProfile.club))),
+          getDocs(query(collection(db, 'authorisationRequests'), where('createdBy', '==', uid))),
         ]);
         const seen = new Set();
-        docs = [...s1.docs, ...s2.docs].filter(d => seen.has(d.id) ? false : seen.add(d.id));
-        docs.sort((a, b) => (b.data().createdAt?.seconds || 0) - (a.data().createdAt?.seconds || 0));
+        docs = sortByDate([...s1.docs, ...s2.docs].filter(d => seen.has(d.id) ? false : seen.add(d.id)));
       } else {
-        const snap = await getDocs(query(collection(db, 'authorisationRequests'),
-          where('createdBy', '==', uid), orderBy('createdAt', 'desc')));
-        docs = snap.docs;
+        const snap = await getDocs(query(collection(db, 'authorisationRequests'), where('createdBy', '==', uid)));
+        docs = sortByDate(snap.docs);
       }
       setRequests(docs.map(d => ({ id: d.id, ...d.data() })));
     } catch (err) { console.error(err); }

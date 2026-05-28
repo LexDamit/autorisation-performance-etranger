@@ -10,7 +10,7 @@ import RemoveIcon        from '@mui/icons-material/Remove';
 import EditNoteIcon      from '@mui/icons-material/EditNote';
 import SpeedOutlinedIcon from '@mui/icons-material/SpeedOutlined';
 import LinkOffIcon       from '@mui/icons-material/LinkOff';
-import { collection, query, where, orderBy, getDocs, doc, updateDoc, deleteField } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, updateDoc, deleteField } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 import PerformanceForm from './PerformanceForm';
 import StatusChip from './StatusChip';
@@ -131,28 +131,27 @@ export default function PerformancePage({ userProfile }) {
   const role = userProfile?.role;
   const uid  = auth.currentUser?.uid;
 
+  const sortByDate = docs =>
+    [...docs].sort((a, b) => (b.data().createdAt?.seconds || 0) - (a.data().createdAt?.seconds || 0));
+
   const load = async () => {
     setLoading(true);
     try {
       let docs;
       if (role === 'federation_staff' || role === 'admin') {
-        const snap = await getDocs(query(collection(db, 'performanceDeclarations'), orderBy('createdAt', 'desc')));
-        docs = snap.docs;
+        const snap = await getDocs(collection(db, 'performanceDeclarations'));
+        docs = sortByDate(snap.docs);
       } else if (role === 'club') {
         // Merge two queries: by clubId (new data) + by createdBy (old data / same account)
         const [s1, s2] = await Promise.all([
-          getDocs(query(collection(db, 'performanceDeclarations'),
-            where('clubId', '==', userProfile.club), orderBy('createdAt', 'desc'))),
-          getDocs(query(collection(db, 'performanceDeclarations'),
-            where('createdBy', '==', uid), orderBy('createdAt', 'desc'))),
+          getDocs(query(collection(db, 'performanceDeclarations'), where('clubId', '==', userProfile.club))),
+          getDocs(query(collection(db, 'performanceDeclarations'), where('createdBy', '==', uid))),
         ]);
         const seen = new Set();
-        docs = [...s1.docs, ...s2.docs].filter(d => seen.has(d.id) ? false : seen.add(d.id));
-        docs.sort((a, b) => (b.data().createdAt?.seconds || 0) - (a.data().createdAt?.seconds || 0));
+        docs = sortByDate([...s1.docs, ...s2.docs].filter(d => seen.has(d.id) ? false : seen.add(d.id)));
       } else {
-        const snap = await getDocs(query(collection(db, 'performanceDeclarations'),
-          where('createdBy', '==', uid), orderBy('createdAt', 'desc')));
-        docs = snap.docs;
+        const snap = await getDocs(query(collection(db, 'performanceDeclarations'), where('createdBy', '==', uid)));
+        docs = sortByDate(snap.docs);
       }
       setPerfs(docs.map(d => ({ id: d.id, ...d.data() })));
     } catch (err) { console.error(err); }
