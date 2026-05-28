@@ -3,38 +3,117 @@ import {
   Box, Button, Typography, Paper, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, CircularProgress, Chip, Collapse, Alert,
   Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Tooltip,
-  IconButton,
+  IconButton, Grid,
 } from '@mui/material';
-import AddIcon           from '@mui/icons-material/Add';
-import RemoveIcon        from '@mui/icons-material/Remove';
-import EditNoteIcon      from '@mui/icons-material/EditNote';
-import SpeedOutlinedIcon from '@mui/icons-material/SpeedOutlined';
-import LinkOffIcon       from '@mui/icons-material/LinkOff';
+import AddIcon                from '@mui/icons-material/Add';
+import RemoveIcon             from '@mui/icons-material/Remove';
+import EditNoteIcon           from '@mui/icons-material/EditNote';
+import SpeedOutlinedIcon      from '@mui/icons-material/SpeedOutlined';
+import EmojiEventsIcon        from '@mui/icons-material/EmojiEvents';
+import AssignmentTurnedInIcon from '@mui/icons-material/AssignmentTurnedIn';
+import LinkOffIcon            from '@mui/icons-material/LinkOff';
+import InfoOutlinedIcon       from '@mui/icons-material/InfoOutlined';
 import { collection, query, where, getDocs, doc, updateDoc, deleteField } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 import PerformanceForm from './PerformanceForm';
 import StatusChip from './StatusChip';
 
-// ── One visual row per competition within a declaration ──────────────────────
-function PerfRow({ doc, comp, onComplete, onUnlink }) {
-  const submittedDate = doc.createdAt?.toDate().toLocaleDateString('fr-LU') || '—';
-  const seltec        = doc.seltecStatus;
-  const isToComplete  = doc.status === 'to_complete';
+// ── Card: one to_complete declaration ────────────────────────────────────────
+function ToCompleteCard({ decl, onComplete }) {
+  const compNames = (decl.competitions || []).map(c => c.name).filter(Boolean);
 
   return (
-    <TableRow sx={{ verticalAlign: 'top', bgcolor: isToComplete ? '#FFFBEB' : 'inherit' }}>
+    <Paper variant="outlined" sx={{ borderRadius: 2.5, overflow: 'hidden', border: '1px solid #FDE68A' }}>
+      {/* Card header */}
+      <Box sx={{
+        px: 2.5, py: 1.25, bgcolor: '#FFFBEB', borderBottom: '1px solid #FDE68A',
+        display: 'flex', alignItems: 'center', gap: 1,
+      }}>
+        <EmojiEventsIcon sx={{ fontSize: 15, color: '#D97706', flexShrink: 0 }} />
+        <Typography variant="subtitle2" fontWeight={700} sx={{ color: '#92400E', flex: 1 }}>
+          {compNames.join(' · ') || '—'}
+        </Typography>
+      </Box>
 
-      {/* Date */}
+      {/* One block per competition */}
+      {(decl.competitions || []).map((comp, ci) => (
+        <Box key={ci} sx={{
+          px: 2.5, py: 1.5, bgcolor: 'white',
+          borderBottom: ci < decl.competitions.length - 1 ? '1px dashed #FDE68A' : 'none',
+        }}>
+          {/* Date + Lieu row */}
+          <Box sx={{ display: 'flex', gap: 3, mb: 1, flexWrap: 'wrap' }}>
+            <Box>
+              <Typography variant="caption" sx={{
+                display: 'block', color: '#94A3B8', fontWeight: 700,
+                textTransform: 'uppercase', fontSize: '0.6rem', letterSpacing: '0.06em', mb: 0.2,
+              }}>Date(s)</Typography>
+              <Typography variant="body2">
+                {comp.dates?.filter(Boolean).join(', ') || comp.date || '—'}
+              </Typography>
+            </Box>
+            <Box>
+              <Typography variant="caption" sx={{
+                display: 'block', color: '#94A3B8', fontWeight: 700,
+                textTransform: 'uppercase', fontSize: '0.6rem', letterSpacing: '0.06em', mb: 0.2,
+              }}>Lieu (Pays)</Typography>
+              <Typography variant="body2">
+                {[comp.place, comp.country].filter(Boolean).join(', ') || '—'}
+              </Typography>
+            </Box>
+          </Box>
+
+          {/* Athletes */}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.3 }}>
+            {(comp.athletes || []).map((ath, ai) => (
+              <Box key={ai} sx={{ display: 'flex', alignItems: 'baseline', gap: 0.75 }}>
+                <Box sx={{
+                  width: 5, height: 5, borderRadius: '50%', bgcolor: '#CBD5E1',
+                  flexShrink: 0, position: 'relative', top: 1,
+                }} />
+                <Typography variant="body2">
+                  <strong>{ath.firstName} {ath.lastName}</strong>
+                  {(ath.performances || []).map(p => p.event).filter(Boolean).length > 0 && (
+                    <Typography component="span" variant="caption" color="text.secondary" sx={{ ml: 0.75 }}>
+                      — {(ath.performances || []).map(p => p.event).filter(Boolean).join(', ')}
+                    </Typography>
+                  )}
+                </Typography>
+              </Box>
+            ))}
+          </Box>
+        </Box>
+      ))}
+
+      {/* Action footer */}
+      <Box sx={{
+        px: 2.5, py: 1.25, bgcolor: '#FFFBEB', borderTop: '1px solid #FDE68A',
+        display: 'flex', justifyContent: 'flex-end',
+      }}>
+        <Button variant="contained" size="small"
+          startIcon={<EditNoteIcon fontSize="small" />}
+          onClick={() => onComplete(decl)}
+          sx={{ bgcolor: '#D97706', '&:hover': { bgcolor: '#B45309' }, boxShadow: 'none', fontSize: '0.8rem' }}>
+          Compléter les résultats
+        </Button>
+      </Box>
+    </Paper>
+  );
+}
+
+// ── Row: one submitted performance (one competition per row) ─────────────────
+function PerfRow({ doc, comp, onUnlink }) {
+  const submittedDate = doc.createdAt?.toDate().toLocaleDateString('fr-LU') || '—';
+  const seltec        = doc.seltecStatus;
+
+  return (
+    <TableRow sx={{ verticalAlign: 'top' }}>
       <TableCell sx={{ whiteSpace: 'nowrap', color: 'text.secondary', fontSize: '0.82rem', pt: 2 }}>
         {submittedDate}
       </TableCell>
-
-      {/* Club */}
       <TableCell sx={{ pt: 2, display: { xs: 'none', sm: 'table-cell' } }}>
         <Typography variant="body2" fontWeight={500}>{doc.club}</Typography>
       </TableCell>
-
-      {/* Competition */}
       <TableCell sx={{ pt: 2, minWidth: 180 }}>
         <Typography variant="body2" fontWeight={600} sx={{ mb: 0.25 }}>
           {comp.name || '—'}
@@ -42,12 +121,12 @@ function PerfRow({ doc, comp, onComplete, onUnlink }) {
         <Typography variant="caption" color="text.secondary" display="block">
           {[comp.place, comp.country].filter(Boolean).join(', ')}
         </Typography>
-        {comp.date && (
-          <Typography variant="caption" color="text.secondary">{comp.date}</Typography>
+        {(comp.dates?.filter(Boolean).join(', ') || comp.date) && (
+          <Typography variant="caption" color="text.secondary">
+            {comp.dates?.filter(Boolean).join(', ') || comp.date}
+          </Typography>
         )}
       </TableCell>
-
-      {/* Athletes + performances */}
       <TableCell sx={{ pt: 2 }}>
         {(comp.athletes || []).map((ath, ai) => (
           <Box key={ai} sx={{
@@ -72,6 +151,9 @@ function PerfRow({ doc, comp, onComplete, onUnlink }) {
                   <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 700 }}>
                     {p.result}
                   </Typography>
+                ) : p.noResult ? (
+                  <Chip label={p.noResult} size="small"
+                    sx={{ fontSize: '0.65rem', height: 18, bgcolor: '#F1F5F9' }} />
                 ) : (
                   <Typography variant="caption" sx={{ color: 'warning.main', fontStyle: 'italic' }}>
                     résultat manquant
@@ -88,8 +170,6 @@ function PerfRow({ doc, comp, onComplete, onUnlink }) {
           </Box>
         ))}
       </TableCell>
-
-      {/* Status + action */}
       <TableCell sx={{ pt: 2, whiteSpace: 'nowrap' }}>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75, alignItems: 'flex-start' }}>
           <StatusChip status={doc.status} />
@@ -106,14 +186,6 @@ function PerfRow({ doc, comp, onComplete, onUnlink }) {
               </Tooltip>
             </Box>
           )}
-          {isToComplete && (
-            <Button size="small" variant="contained" color="warning"
-              startIcon={<EditNoteIcon fontSize="small" />}
-              onClick={() => onComplete(doc)}
-              sx={{ mt: 0.5, fontSize: '0.75rem' }}>
-              Compléter
-            </Button>
-          )}
         </Box>
       </TableCell>
     </TableRow>
@@ -123,8 +195,8 @@ function PerfRow({ doc, comp, onComplete, onUnlink }) {
 // ── Page ─────────────────────────────────────────────────────────────────────
 export default function PerformancePage({ userProfile }) {
   const [showForm, setShowForm]     = useState(false);
-  const [editingDoc, setEditingDoc] = useState(null); // declaration being completed
-  const [unlinkDoc, setUnlinkDoc]   = useState(null); // declaration to unlink
+  const [editingDoc, setEditingDoc] = useState(null);
+  const [unlinkDoc, setUnlinkDoc]   = useState(null);
   const [unlinking, setUnlinking]   = useState(false);
   const [perfs, setPerfs]           = useState([]);
   const [loading, setLoading]       = useState(true);
@@ -142,7 +214,6 @@ export default function PerformancePage({ userProfile }) {
         const snap = await getDocs(collection(db, 'performanceDeclarations'));
         docs = sortByDate(snap.docs);
       } else if (role === 'club') {
-        // Merge two queries: by clubId (new data) + by createdBy (old data / same account)
         const [s1, s2] = await Promise.all([
           getDocs(query(collection(db, 'performanceDeclarations'), where('clubId', '==', userProfile.club))),
           getDocs(query(collection(db, 'performanceDeclarations'), where('createdBy', '==', uid))),
@@ -160,8 +231,11 @@ export default function PerformancePage({ userProfile }) {
 
   useEffect(() => { load(); }, []); // eslint-disable-line
 
-  const rows = perfs.flatMap(doc =>
-    (doc.competitions?.length ? doc.competitions : [{}]).map(comp => ({ doc, comp }))
+  // Split: stubs awaiting results vs fully submitted
+  const toCompletePerfs = perfs.filter(d => d.status === 'to_complete');
+  const submittedPerfs  = perfs.filter(d => d.status !== 'to_complete');
+  const submittedRows   = submittedPerfs.flatMap(d =>
+    (d.competitions?.length ? d.competitions : [{}]).map(comp => ({ doc: d, comp }))
   );
 
   const subtitle = role === 'federation_staff' || role === 'admin'
@@ -170,13 +244,10 @@ export default function PerformancePage({ userProfile }) {
     ? `Club : ${userProfile?.club}`
     : 'Mes performances';
 
-  const handleComplete = (doc) => {
-    setEditingDoc(doc);
+  const handleComplete = (decl) => {
+    setEditingDoc(decl);
     setShowForm(false);
-    // Scroll to top of panel
-    setTimeout(() => {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }, 100);
+    setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 100);
   };
 
   const handleEditSuccess = () => {
@@ -199,7 +270,7 @@ export default function PerformancePage({ userProfile }) {
 
   return (
     <Box>
-      {/* Page header */}
+      {/* ── Page header ── */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3, flexWrap: 'wrap', gap: 2 }}>
         <Box>
           <Typography variant="h5" fontWeight={700}>Performances à l'étranger</Typography>
@@ -214,7 +285,7 @@ export default function PerformancePage({ userProfile }) {
         </Button>
       </Box>
 
-      {/* New form panel */}
+      {/* ── New performance form ── */}
       <Collapse in={showForm && !editingDoc}>
         <Paper sx={{ p: { xs: 2.5, md: 3.5 }, mb: 3, borderRadius: 3 }}>
           <PerformanceForm
@@ -224,12 +295,13 @@ export default function PerformancePage({ userProfile }) {
         </Paper>
       </Collapse>
 
-      {/* Complete existing declaration panel */}
+      {/* ── Edit / complete form ── */}
       <Collapse in={Boolean(editingDoc)}>
         {editingDoc && (
           <Paper sx={{ p: { xs: 2.5, md: 3.5 }, mb: 3, borderRadius: 3, border: '2px solid #F59E0B' }}>
             <Alert severity="warning" sx={{ mb: 3 }} onClose={() => setEditingDoc(null)}>
-              Complétion des résultats pour <strong>{(editingDoc.competitions || [])[0]?.name || 'cette compétition'}</strong>.
+              Complétion des résultats pour{' '}
+              <strong>{(editingDoc.competitions || [])[0]?.name || 'cette compétition'}</strong>.
               Les champs sont pré-remplis depuis votre demande d'autorisation.
             </Alert>
             <PerformanceForm
@@ -243,48 +315,125 @@ export default function PerformancePage({ userProfile }) {
         )}
       </Collapse>
 
-      {/* Table */}
       {loading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
           <CircularProgress />
         </Box>
-      ) : rows.length === 0 ? (
-        <Paper sx={{ py: 8, textAlign: 'center', borderRadius: 3 }}>
-          <SpeedOutlinedIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 1.5 }} />
-          <Typography variant="body1" color="text.secondary" fontWeight={500}>
-            Aucune performance enregistrée
-          </Typography>
-          <Typography variant="body2" color="text.disabled" sx={{ mt: 0.5 }}>
-            Cliquez sur « Nouvelle fiche » pour soumettre vos résultats.
-          </Typography>
-        </Paper>
       ) : (
-        <TableContainer component={Paper} sx={{ borderRadius: 3, overflowX: 'auto' }}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Soumis le</TableCell>
-                <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>Club</TableCell>
-                <TableCell>Compétition</TableCell>
-                <TableCell>Athlètes &amp; Résultats</TableCell>
-                <TableCell>Statut</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {rows.map(({ doc, comp }, i) => (
-                <PerfRow
-                  key={`${doc.id}-${i}`}
-                  doc={doc} comp={comp}
-                  onComplete={handleComplete}
-                  onUnlink={setUnlinkDoc}
-                />
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+        <>
+          {/* ══════════════════════════════════════════════════════════════
+              SECTION 1 — À compléter (stubs from authorisation requests)
+          ══════════════════════════════════════════════════════════════ */}
+          {toCompletePerfs.length > 0 && (
+            <Box sx={{ mb: 4 }}>
+              {/* Section heading */}
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1.5 }}>
+                <EditNoteIcon sx={{ fontSize: 20, color: '#D97706' }} />
+                <Typography variant="h6" fontWeight={700} sx={{ fontSize: '1rem', color: '#0F172A' }}>
+                  Résultats à compléter
+                </Typography>
+                <Box sx={{ px: 1, py: 0.15, borderRadius: 1, bgcolor: '#FEF3C7' }}>
+                  <Typography variant="caption" fontWeight={700} sx={{ color: '#92400E' }}>
+                    {toCompletePerfs.length}
+                  </Typography>
+                </Box>
+              </Box>
+
+              {/* Explanation banner */}
+              <Box sx={{
+                display: 'flex', alignItems: 'flex-start', gap: 1.25,
+                px: 2, py: 1.5, mb: 2,
+                bgcolor: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 2,
+              }}>
+                <InfoOutlinedIcon sx={{ fontSize: 17, color: '#3B82F6', flexShrink: 0, mt: '1px' }} />
+                <Typography variant="body2" sx={{ color: '#1D4ED8', lineHeight: 1.55 }}>
+                  Veuillez trouver ci-dessous les athlètes et compétitions pour lesquels vous avez
+                  introduit une demande d'autorisation. Vous pouvez compléter la fiche directement
+                  avec le résultat dès votre retour de compétition.
+                </Typography>
+              </Box>
+
+              {/* Cards grid */}
+              <Grid container spacing={2}>
+                {toCompletePerfs.map(decl => (
+                  <Grid item key={decl.id} xs={12} sm={6} lg={4}>
+                    <ToCompleteCard decl={decl} onComplete={handleComplete} />
+                  </Grid>
+                ))}
+              </Grid>
+            </Box>
+          )}
+
+          {/* ══════════════════════════════════════════════════════════════
+              SECTION 2 — Submitted performance declarations
+          ══════════════════════════════════════════════════════════════ */}
+          <Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1.5 }}>
+              <AssignmentTurnedInIcon sx={{ fontSize: 20, color: '#475569' }} />
+              <Typography variant="h6" fontWeight={700} sx={{ fontSize: '1rem', color: '#0F172A' }}>
+                Performances déclarées
+              </Typography>
+              {submittedRows.length > 0 && (
+                <Box sx={{ px: 1, py: 0.15, borderRadius: 1, bgcolor: '#F1F5F9' }}>
+                  <Typography variant="caption" fontWeight={700} color="text.secondary">
+                    {submittedRows.length}
+                  </Typography>
+                </Box>
+              )}
+            </Box>
+
+            {submittedRows.length === 0 ? (
+              <Paper sx={{ py: 6, textAlign: 'center', borderRadius: 3 }}>
+                <SpeedOutlinedIcon sx={{ fontSize: 40, color: 'text.disabled', mb: 1.5 }} />
+                <Typography variant="body1" color="text.secondary" fontWeight={500}>
+                  Aucune performance déclarée
+                </Typography>
+                <Typography variant="body2" color="text.disabled" sx={{ mt: 0.5 }}>
+                  Cliquez sur « Nouvelle fiche » pour soumettre vos résultats.
+                </Typography>
+              </Paper>
+            ) : (
+              <TableContainer component={Paper} sx={{ borderRadius: 3, overflowX: 'auto' }}>
+                <Table>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Soumis le</TableCell>
+                      <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>Club</TableCell>
+                      <TableCell>Compétition</TableCell>
+                      <TableCell>Athlètes &amp; Résultats</TableCell>
+                      <TableCell>Statut</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {submittedRows.map(({ doc, comp }, i) => (
+                      <PerfRow
+                        key={`${doc.id}-${i}`}
+                        doc={doc} comp={comp}
+                        onUnlink={setUnlinkDoc}
+                      />
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            )}
+          </Box>
+
+          {/* Empty state when there's nothing at all */}
+          {toCompletePerfs.length === 0 && submittedRows.length === 0 && (
+            <Paper sx={{ py: 8, textAlign: 'center', borderRadius: 3, mt: 2 }}>
+              <SpeedOutlinedIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 1.5 }} />
+              <Typography variant="body1" color="text.secondary" fontWeight={500}>
+                Aucune performance enregistrée
+              </Typography>
+              <Typography variant="body2" color="text.disabled" sx={{ mt: 0.5 }}>
+                Cliquez sur « Nouvelle fiche » pour soumettre vos résultats.
+              </Typography>
+            </Paper>
+          )}
+        </>
       )}
 
-      {/* Unlink confirmation dialog */}
+      {/* ── Unlink confirmation dialog ── */}
       <Dialog
         open={Boolean(unlinkDoc)}
         onClose={() => !unlinking && setUnlinkDoc(null)}
