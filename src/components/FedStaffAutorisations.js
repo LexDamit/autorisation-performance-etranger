@@ -2,14 +2,15 @@ import React, { useEffect, useState } from 'react';
 import {
   Box, Typography, Paper, Table, TableBody, TableCell, TableContainer,
   TableHead, TableRow, Button, Collapse, IconButton, CircularProgress,
-  Chip, Divider, Dialog, DialogTitle, DialogContent, DialogContentText,
-  DialogActions, Alert, TextField,
+  Chip, Dialog, DialogTitle, DialogContent, DialogContentText,
+  DialogActions, Alert, TextField, Grid,
 } from '@mui/material';
 import KeyboardArrowDownIcon  from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon    from '@mui/icons-material/KeyboardArrowUp';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import CancelOutlinedIcon     from '@mui/icons-material/CancelOutlined';
 import HourglassEmptyIcon     from '@mui/icons-material/HourglassEmpty';
+import EmojiEventsIcon        from '@mui/icons-material/EmojiEvents';
 import { collection, query, orderBy, getDocs, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 import StatusChip from './StatusChip';
@@ -73,52 +74,116 @@ function Row({ row, onAction }) {
       <TableRow>
         <TableCell colSpan={7} sx={{ p: 0, borderBottom: open ? undefined : 'none' }}>
           <Collapse in={open} timeout="auto" unmountOnExit>
-            <Box sx={{ p: 2.5, bgcolor: '#F8FAFC', borderTop: '1px solid #E2E8F0' }}>
-              {(row.competitions || []).map((comp, i) => (
-                <Box key={i} sx={{ mb: i < (row.competitions.length - 1) ? 2.5 : 0 }}>
-                  <Typography variant="subtitle2" sx={{ mb: 0.5 }}>{comp.name}</Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
-                    {[comp.place, comp.country].filter(Boolean).join(', ')}
-                    {comp.dates?.length ? ` — ${comp.dates.filter(Boolean).join(', ')}` : ''}
-                  </Typography>
-                  {comp.site && (
-                    <Typography variant="caption" display="block" sx={{ mb: 0.75 }}>
-                      Site : <a href={comp.site} target="_blank" rel="noopener noreferrer"
-                        style={{ color: '#1B3A8F' }}>{comp.site}</a>
+            <Box sx={{ bgcolor: '#F8FAFC', borderTop: '1px solid #E2E8F0' }}>
+
+              {/* ── One block per competition ── */}
+              {(row.competitions || []).map((comp, ci) => (
+                <Box key={ci} sx={{
+                  p: 2.5,
+                  borderBottom: ci < (row.competitions.length - 1) ? '1px dashed #CBD5E1' : 'none',
+                }}>
+                  {/* Competition header */}
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1.5 }}>
+                    <EmojiEventsIcon sx={{ fontSize: 16, color: '#1B3A8F' }} />
+                    <Typography variant="subtitle2" fontWeight={700} sx={{ color: '#1B3A8F' }}>
+                      {comp.name || '—'}
                     </Typography>
-                  )}
-                  {(comp.athletes || []).map((a, j) => (
-                    <Box key={j} sx={{ ml: 1, display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.25 }}>
-                      <Box sx={{ width: 4, height: 4, borderRadius: '50%', bgcolor: 'text.secondary' }} />
+                    {comp.type && (
+                      <Chip label={comp.type === 'indoor' ? 'Indoor' : 'Outdoor'} size="small" sx={{
+                        fontSize: '0.68rem', height: 20,
+                        bgcolor: comp.type === 'indoor' ? '#EEF2FF' : '#F0FDF4',
+                        color:   comp.type === 'indoor' ? '#3730A3' : '#166534',
+                      }} />
+                    )}
+                  </Box>
+
+                  {/* Info columns */}
+                  <Grid container spacing={2} sx={{ mb: 1.5 }}>
+                    <Grid item xs={12} sm="auto" sx={{ minWidth: 140 }}>
+                      <Typography variant="caption" sx={{ display: 'block', color: '#94A3B8', fontWeight: 700, textTransform: 'uppercase', fontSize: '0.62rem', letterSpacing: '0.06em', mb: 0.25 }}>Date(s)</Typography>
                       <Typography variant="body2">
-                        {a.firstName} {a.lastName}
-                        {a.licenceNumber ? ` (N° ${a.licenceNumber})` : ''}
-                        {a.events?.length ? ` — ${a.events.filter(Boolean).join(', ')}` : ''}
+                        {comp.dates?.filter(Boolean).join(', ') || comp.date || '—'}
                       </Typography>
+                    </Grid>
+                    <Grid item xs={6} sm="auto" sx={{ minWidth: 100 }}>
+                      <Typography variant="caption" sx={{ display: 'block', color: '#94A3B8', fontWeight: 700, textTransform: 'uppercase', fontSize: '0.62rem', letterSpacing: '0.06em', mb: 0.25 }}>Lieu</Typography>
+                      <Typography variant="body2">{comp.place || '—'}</Typography>
+                    </Grid>
+                    <Grid item xs={6} sm="auto" sx={{ minWidth: 80 }}>
+                      <Typography variant="caption" sx={{ display: 'block', color: '#94A3B8', fontWeight: 700, textTransform: 'uppercase', fontSize: '0.62rem', letterSpacing: '0.06em', mb: 0.25 }}>Pays</Typography>
+                      <Typography variant="body2">{comp.country || '—'}</Typography>
+                    </Grid>
+                    {comp.site && (
+                      <Grid item xs={12} sm="auto">
+                        <Typography variant="caption" sx={{ display: 'block', color: '#94A3B8', fontWeight: 700, textTransform: 'uppercase', fontSize: '0.62rem', letterSpacing: '0.06em', mb: 0.25 }}>Site internet</Typography>
+                        <Typography variant="body2">
+                          <a href={comp.site} target="_blank" rel="noopener noreferrer" style={{ color: '#1B3A8F' }}>{comp.site}</a>
+                        </Typography>
+                      </Grid>
+                    )}
+                  </Grid>
+
+                  {/* Athletes sub-table */}
+                  {(comp.athletes?.length > 0) && (
+                    <Box sx={{ borderRadius: 1.5, overflow: 'hidden', border: '1px solid #E2E8F0' }}>
+                      <Table size="small">
+                        <TableHead>
+                          <TableRow sx={{ bgcolor: '#F1F5F9' }}>
+                            <TableCell sx={{ fontWeight: 700, fontSize: '0.72rem', color: '#475569', py: 0.75 }}>Athlète</TableCell>
+                            <TableCell sx={{ fontWeight: 700, fontSize: '0.72rem', color: '#475569', py: 0.75, display: { xs: 'none', sm: 'table-cell' } }}>Catégorie</TableCell>
+                            <TableCell sx={{ fontWeight: 700, fontSize: '0.72rem', color: '#475569', py: 0.75, display: { xs: 'none', sm: 'table-cell' } }}>Sexe</TableCell>
+                            <TableCell sx={{ fontWeight: 700, fontSize: '0.72rem', color: '#475569', py: 0.75 }}>Épreuve(s)</TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {comp.athletes.map((ath, ai) => (
+                            <TableRow key={ai} sx={{ '&:last-child td': { borderBottom: 'none' }, bgcolor: 'white' }}>
+                              <TableCell sx={{ py: 0.75 }}>
+                                <Typography variant="body2" fontWeight={500}>{ath.firstName} {ath.lastName}</Typography>
+                                {ath.licenceNumber && (
+                                  <Typography variant="caption" color="text.secondary">N° {ath.licenceNumber}</Typography>
+                                )}
+                              </TableCell>
+                              <TableCell sx={{ py: 0.75, color: 'text.secondary', fontSize: '0.82rem', display: { xs: 'none', sm: 'table-cell' } }}>
+                                {ath.category && ath.category !== '-' ? ath.category : '—'}
+                              </TableCell>
+                              <TableCell sx={{ py: 0.75, color: 'text.secondary', fontSize: '0.82rem', display: { xs: 'none', sm: 'table-cell' } }}>
+                                {ath.sex || '—'}
+                              </TableCell>
+                              <TableCell sx={{ py: 0.75, fontSize: '0.82rem' }}>
+                                {ath.events?.filter(Boolean).join(', ') || '—'}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
                     </Box>
-                  ))}
-                  {i < (row.competitions.length - 1) && <Divider sx={{ mt: 2 }} />}
+                  )}
                 </Box>
               ))}
-              {row.remarks && (
-                <Typography variant="caption" color="text.secondary" sx={{ mt: 1.5, display: 'block', fontStyle: 'italic' }}>
-                  Remarques du demandeur : {row.remarks}
-                </Typography>
-              )}
-              {row.comment && (
-                <Box sx={{ mt: 1.5, p: 1.25, borderRadius: 1.5, bgcolor: row.status === 'accepted' ? '#F0FDF4' : '#FFF5F5', border: `1px solid ${row.status === 'accepted' ? '#BBF7D0' : '#FECACA'}` }}>
-                  <Typography variant="caption" fontWeight={700} color={row.status === 'accepted' ? 'success.main' : 'error.main'} display="block" sx={{ mb: 0.25 }}>
-                    Commentaire de la fédération :
-                  </Typography>
-                  <Typography variant="caption" color="text.primary">
-                    {row.comment}
-                  </Typography>
+
+              {/* ── Footer: remarks, comment, status ── */}
+              {(row.remarks || row.comment || row.acceptedAt) && (
+                <Box sx={{ px: 2.5, py: 1.5, borderTop: '1px solid #E2E8F0', bgcolor: 'white', display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  {row.remarks && (
+                    <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                      <strong>Remarques du demandeur :</strong> {row.remarks}
+                    </Typography>
+                  )}
+                  {row.comment && (
+                    <Box sx={{ p: 1.25, borderRadius: 1.5, bgcolor: row.status === 'accepted' ? '#F0FDF4' : '#FFF5F5', border: `1px solid ${row.status === 'accepted' ? '#BBF7D0' : '#FECACA'}` }}>
+                      <Typography variant="caption" fontWeight={700} color={row.status === 'accepted' ? 'success.main' : 'error.main'} display="block" sx={{ mb: 0.25 }}>
+                        Commentaire de la fédération :
+                      </Typography>
+                      <Typography variant="caption" color="text.primary">{row.comment}</Typography>
+                    </Box>
+                  )}
+                  {row.acceptedAt && (
+                    <Typography variant="caption" color={row.status === 'accepted' ? 'success.main' : 'error.main'}>
+                      {row.status === 'accepted' ? '✓ Acceptée' : '✗ Refusée'} le {row.acceptedAt.toDate().toLocaleDateString('fr-LU')}
+                    </Typography>
+                  )}
                 </Box>
-              )}
-              {row.acceptedAt && (
-                <Typography variant="caption" color={row.status === 'accepted' ? 'success.main' : 'error.main'} sx={{ mt: 1, display: 'block' }}>
-                  {row.status === 'accepted' ? '✓ Acceptée' : '✗ Refusée'} le {row.acceptedAt.toDate().toLocaleDateString('fr-LU')}
-                </Typography>
               )}
             </Box>
           </Collapse>
