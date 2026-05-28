@@ -130,10 +130,10 @@ function Row({ row }) {
                               Athlète
                             </TableCell>
                             <TableCell sx={{ fontWeight: 700, fontSize: '0.72rem', color: '#475569', py: 0.75, display: { xs: 'none', sm: 'table-cell' } }}>
-                              N° Licence
+                              Catégorie
                             </TableCell>
                             <TableCell sx={{ fontWeight: 700, fontSize: '0.72rem', color: '#475569', py: 0.75, display: { xs: 'none', sm: 'table-cell' } }}>
-                              Catégorie
+                              Sexe
                             </TableCell>
                             <TableCell sx={{ fontWeight: 700, fontSize: '0.72rem', color: '#475569', py: 0.75 }}>
                               Épreuve(s)
@@ -149,10 +149,10 @@ function Row({ row }) {
                                 </Typography>
                               </TableCell>
                               <TableCell sx={{ py: 0.75, color: 'text.secondary', fontSize: '0.82rem', display: { xs: 'none', sm: 'table-cell' } }}>
-                                {ath.licenceNumber || '—'}
+                                {ath.category && ath.category !== '-' ? ath.category : '—'}
                               </TableCell>
                               <TableCell sx={{ py: 0.75, color: 'text.secondary', fontSize: '0.82rem', display: { xs: 'none', sm: 'table-cell' } }}>
-                                {ath.category && ath.category !== '-' ? ath.category : '—'}
+                                {ath.sex || '—'}
                               </TableCell>
                               <TableCell sx={{ py: 0.75, fontSize: '0.82rem' }}>
                                 {ath.events?.filter(Boolean).join(', ') || '—'}

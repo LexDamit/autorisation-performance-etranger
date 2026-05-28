@@ -419,11 +419,11 @@ export default function AuthorisationForm({ userProfile, onSubmitSuccess }) {
               <TextField fullWidth required size="small" label="Nom du demandeur"
                 value={lastName} onChange={e => setLastName(e.target.value)} />
             </Grid>
-            <Grid item xs={12} sm={5} md={4}>
+            <Grid item xs={12} md={4}>
               <TextField fullWidth required size="small" type="email" label="Email du demandeur"
                 value={email} onChange={e => setEmail(e.target.value)} />
             </Grid>
-            <Grid item xs={12} sm={7} md={8}>
+            <Grid item xs={12} md={8}>
               <Autocomplete
                 multiple freeSolo fullWidth
                 options={[]}

@@ -258,12 +258,12 @@ export default function PerformanceForm({ userProfile, prefill, docId, onSubmitS
                 {hasError('club') && <FormHelperText>{getError('club')}</FormHelperText>}
               </FormControl>
             </Grid>
-            <Grid item xs={12} sm={5} md={4}>
+            <Grid item xs={12} md={4}>
               <TextField fullWidth required size="small" label="E-mail" value={email}
                 onChange={e => setEmail(e.target.value)}
                 error={hasError('email')} helperText={getError('email')} />
             </Grid>
-            <Grid item xs={12} sm={7} md={8}>
+            <Grid item xs={12} md={8}>
               <Autocomplete
                 multiple freeSolo fullWidth
                 options={[]}
