@@ -134,18 +134,27 @@ export default function PerformancePage({ userProfile }) {
   const load = async () => {
     setLoading(true);
     try {
-      let q;
+      let docs;
       if (role === 'federation_staff' || role === 'admin') {
-        q = query(collection(db, 'performanceDeclarations'), orderBy('createdAt', 'desc'));
+        const snap = await getDocs(query(collection(db, 'performanceDeclarations'), orderBy('createdAt', 'desc')));
+        docs = snap.docs;
       } else if (role === 'club') {
-        q = query(collection(db, 'performanceDeclarations'),
-          where('clubId', '==', userProfile.club), orderBy('createdAt', 'desc'));
+        // Merge two queries: by clubId (new data) + by createdBy (old data / same account)
+        const [s1, s2] = await Promise.all([
+          getDocs(query(collection(db, 'performanceDeclarations'),
+            where('clubId', '==', userProfile.club), orderBy('createdAt', 'desc'))),
+          getDocs(query(collection(db, 'performanceDeclarations'),
+            where('createdBy', '==', uid), orderBy('createdAt', 'desc'))),
+        ]);
+        const seen = new Set();
+        docs = [...s1.docs, ...s2.docs].filter(d => seen.has(d.id) ? false : seen.add(d.id));
+        docs.sort((a, b) => (b.data().createdAt?.seconds || 0) - (a.data().createdAt?.seconds || 0));
       } else {
-        q = query(collection(db, 'performanceDeclarations'),
-          where('createdBy', '==', uid), orderBy('createdAt', 'desc'));
+        const snap = await getDocs(query(collection(db, 'performanceDeclarations'),
+          where('createdBy', '==', uid), orderBy('createdAt', 'desc')));
+        docs = snap.docs;
       }
-      const snap = await getDocs(q);
-      setPerfs(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      setPerfs(docs.map(d => ({ id: d.id, ...d.data() })));
     } catch (err) { console.error(err); }
     setLoading(false);
   };

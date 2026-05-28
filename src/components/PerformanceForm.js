@@ -316,7 +316,22 @@ export default function PerformanceForm({ userProfile, prefill, docId, onSubmitS
                   onChange={e => updComp(ci, 'country', e.target.value)}
                   error={hasError(`comp[${ci}].country`)} helperText={getError(`comp[${ci}].country`)} />
               </Grid>
-              <Grid item xs={12} sm={5}>
+              <Grid item xs={6} sm={2}>
+                <FormControl fullWidth required size="small">
+                  <InputLabel>Type</InputLabel>
+                  <Select value={comp.type || 'outdoor'} label="Type"
+                    onChange={e => updComp(ci, 'type', e.target.value)}>
+                    <MenuItem value="outdoor">Outdoor</MenuItem>
+                    <MenuItem value="indoor">Indoor</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={6} sm={4}>
+                <TextField fullWidth required size="small" label="Site internet" value={comp.site}
+                  onChange={e => updComp(ci, 'site', e.target.value)}
+                  error={hasError(`comp[${ci}].site`)} helperText={getError(`comp[${ci}].site`)} />
+              </Grid>
+              <Grid item xs={12}>
                 <Box>
                   <Typography variant="caption" fontWeight={600} color="text.secondary"
                     sx={{ display: 'block', mb: 0.5, textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '0.68rem' }}>
@@ -342,25 +357,10 @@ export default function PerformanceForm({ userProfile, prefill, docId, onSubmitS
                     ))}
                     <Button type="button" variant="outlined" size="small" startIcon={<AddIcon />}
                       onClick={e => { e.preventDefault(); addDate(ci); }} sx={{ height: 40, whiteSpace: 'nowrap' }}>
-                      Jour
+                      + Jour
                     </Button>
                   </Box>
                 </Box>
-              </Grid>
-              <Grid item xs={6} sm={2}>
-                <FormControl fullWidth required size="small">
-                  <InputLabel>Type</InputLabel>
-                  <Select value={comp.type || 'outdoor'} label="Type"
-                    onChange={e => updComp(ci, 'type', e.target.value)}>
-                    <MenuItem value="outdoor">Outdoor</MenuItem>
-                    <MenuItem value="indoor">Indoor</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} sm={2}>
-                <TextField fullWidth required size="small" label="Site internet" value={comp.site}
-                  onChange={e => updComp(ci, 'site', e.target.value)}
-                  error={hasError(`comp[${ci}].site`)} helperText={getError(`comp[${ci}].site`)} />
               </Grid>
             </Grid>
 
