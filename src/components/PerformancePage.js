@@ -3,7 +3,7 @@ import {
   Box, Button, Typography, Paper, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, CircularProgress, Chip, Collapse, Alert,
   Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Tooltip,
-  IconButton, Grid,
+  IconButton,
 } from '@mui/material';
 import AddIcon                from '@mui/icons-material/Add';
 import RemoveIcon             from '@mui/icons-material/Remove';
@@ -41,26 +41,21 @@ function ToCompleteCard({ decl, onComplete }) {
           px: 2.5, py: 1.5, bgcolor: 'white',
           borderBottom: ci < decl.competitions.length - 1 ? '1px dashed #FDE68A' : 'none',
         }}>
-          {/* Date + Lieu row */}
-          <Box sx={{ display: 'flex', gap: 3, mb: 1, flexWrap: 'wrap' }}>
-            <Box>
-              <Typography variant="caption" sx={{
-                display: 'block', color: '#94A3B8', fontWeight: 700,
-                textTransform: 'uppercase', fontSize: '0.6rem', letterSpacing: '0.06em', mb: 0.2,
-              }}>Date(s)</Typography>
-              <Typography variant="body2">
-                {comp.dates?.filter(Boolean).join(', ') || comp.date || '—'}
-              </Typography>
-            </Box>
-            <Box>
-              <Typography variant="caption" sx={{
-                display: 'block', color: '#94A3B8', fontWeight: 700,
-                textTransform: 'uppercase', fontSize: '0.6rem', letterSpacing: '0.06em', mb: 0.2,
-              }}>Lieu (Pays)</Typography>
-              <Typography variant="body2">
-                {[comp.place, comp.country].filter(Boolean).join(', ') || '—'}
-              </Typography>
-            </Box>
+          {/* Date + Lieu + Pays row */}
+          <Box sx={{ display: 'flex', gap: 4, mb: 1, flexWrap: 'wrap' }}>
+            {[
+              { label: 'Date(s)',  value: comp.dates?.filter(Boolean).join(', ') || comp.date || '—' },
+              { label: 'Lieu',    value: comp.place   || '—' },
+              { label: 'Pays',    value: comp.country || '—' },
+            ].map(({ label, value }) => (
+              <Box key={label}>
+                <Typography variant="caption" sx={{
+                  display: 'block', color: '#94A3B8', fontWeight: 700,
+                  textTransform: 'uppercase', fontSize: '0.6rem', letterSpacing: '0.06em', mb: 0.2,
+                }}>{label}</Typography>
+                <Typography variant="body2">{value}</Typography>
+              </Box>
+            ))}
           </Box>
 
           {/* Athletes */}
@@ -353,14 +348,12 @@ export default function PerformancePage({ userProfile }) {
                 </Typography>
               </Box>
 
-              {/* Cards grid */}
-              <Grid container spacing={2}>
+              {/* Cards — full-width rows */}
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 {toCompletePerfs.map(decl => (
-                  <Grid item key={decl.id} xs={12} sm={6} lg={4}>
-                    <ToCompleteCard decl={decl} onComplete={handleComplete} />
-                  </Grid>
+                  <ToCompleteCard key={decl.id} decl={decl} onComplete={handleComplete} />
                 ))}
-              </Grid>
+              </Box>
             </Box>
           )}
 
