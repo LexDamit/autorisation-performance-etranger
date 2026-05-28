@@ -2,15 +2,15 @@ import React, { useState } from 'react';
 import {
   Box, TextField, Button, Select, MenuItem, FormControl, InputLabel,
   CircularProgress, Typography, Grid, IconButton, Chip, Paper, Divider,
-  Autocomplete,
+  Autocomplete, FormHelperText, Tooltip,
 } from '@mui/material';
-import AddIcon           from '@mui/icons-material/Add';
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
-import PersonAddIcon     from '@mui/icons-material/PersonAdd';
-import EmojiEventsIcon   from '@mui/icons-material/EmojiEvents';
-import LinkIcon          from '@mui/icons-material/Link';
-import LinkOffIcon       from '@mui/icons-material/LinkOff';
-import BadgeIcon         from '@mui/icons-material/Badge';
+import AddIcon            from '@mui/icons-material/Add';
+import DeleteOutlineIcon  from '@mui/icons-material/DeleteOutline';
+import PersonAddIcon      from '@mui/icons-material/PersonAdd';
+import EmojiEventsIcon    from '@mui/icons-material/EmojiEvents';
+import LinkOffIcon        from '@mui/icons-material/LinkOff';
+import BadgeIcon          from '@mui/icons-material/Badge';
+import InfoOutlinedIcon   from '@mui/icons-material/InfoOutlined';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 import athletes from '../data/athletes.json';
@@ -34,6 +34,11 @@ const CLUB_NORMALIZE = {
   "Fédération Luxembourgeoise d'Athlétisme":     'FLA-IND',
 };
 const normalizeClub = name => CLUB_NORMALIZE[name] || name;
+
+const categories = [
+  '-','U12 Débutant(e)','U14 Scolaire','U16 Minime','U18 Cadet(te)',
+  'U20 Junior','U23 Espoir','Senior','Masters',
+];
 
 // ── Section heading ───────────────────────────────────────────────────────────
 function SectionHeader({ icon, title, onRemove, removeDisabled }) {
@@ -60,7 +65,7 @@ function SectionHeader({ icon, title, onRemove, removeDisabled }) {
 }
 
 // ── Athlete entry block ───────────────────────────────────────────────────────
-function AthleteBlock({ ath, ci, ai, club, onUpdate, onRemove, removeDisabled }) {
+function AthleteBlock({ ath, ci, ai, club, onUpdate, onRemove, removeDisabled, errors = {} }) {
   const options = club && club !== '-'
     ? athletes.filter(a => normalizeClub(a.club) === club)
     : athletes;
@@ -72,13 +77,17 @@ function AthleteBlock({ ath, ci, ai, club, onUpdate, onRemove, removeDisabled })
         lastName:      val.lastName,
         licenceNumber: val.licenceNumber || '',
         bib:           val.bib          || '',
-        category:      val.category     || '',
+        category:      val.category     || '-',
+        sex:           val.sex          || '',
         _flaAthlete:   val,
       });
     } else {
       onUpdate({ _flaAthlete: null, licenceNumber: '', bib: '' });
     }
   };
+
+  const sexErr      = errors[`${ci}_${ai}_sex`];
+  const categoryErr = errors[`${ci}_${ai}_category`];
 
   return (
     <Paper variant="outlined" sx={{ borderRadius: 2, overflow: 'hidden', borderColor: '#E2E8F0' }}>
@@ -89,7 +98,8 @@ function AthleteBlock({ ath, ci, ai, club, onUpdate, onRemove, removeDisabled })
         removeDisabled={removeDisabled}
       />
       <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-        {/* Name + FLA search */}
+
+        {/* ── Row 1 : Prénom · Nom · Dossard ── */}
         <Grid container spacing={1.5} alignItems="flex-start">
           <Grid item xs={12} sm={4}>
             <TextField size="small" fullWidth required label="Prénom"
@@ -122,9 +132,7 @@ function AthleteBlock({ ath, ci, ai, club, onUpdate, onRemove, removeDisabled })
               renderOption={(props, a) => (
                 <Box component="li" {...props} key={a.licenceNumber}>
                   <Box>
-                    <Typography variant="body2" fontWeight={500}>
-                      {a.firstName} {a.lastName}
-                    </Typography>
+                    <Typography variant="body2" fontWeight={500}>{a.firstName} {a.lastName}</Typography>
                     <Typography variant="caption" color="text.secondary">
                       Dossard #{a.bib} · {a.category} · {a.club}
                     </Typography>
@@ -132,13 +140,15 @@ function AthleteBlock({ ath, ci, ai, club, onUpdate, onRemove, removeDisabled })
                 </Box>
               )}
               renderInput={params => (
-                <TextField {...params} size="small" label="Lier à un athlète FLA"
-                  placeholder="Nom ou dossard…"
+                <TextField {...params} size="small" label="Dossard"
+                  placeholder="Rechercher par nom…"
                   InputProps={{
                     ...params.InputProps,
                     startAdornment: (
                       <>
-                        <LinkIcon sx={{ fontSize: 16, color: 'text.disabled', mr: 0.5 }} />
+                        <Tooltip title="Vous pouvez rechercher le dossard par nom dans cette case" placement="top">
+                          <InfoOutlinedIcon sx={{ fontSize: 15, color: '#94A3B8', mr: 0.5, cursor: 'help', flexShrink: 0 }} />
+                        </Tooltip>
                         {params.InputProps.startAdornment}
                       </>
                     ),
@@ -146,6 +156,37 @@ function AthleteBlock({ ath, ci, ai, club, onUpdate, onRemove, removeDisabled })
                 />
               )}
             />
+          </Grid>
+        </Grid>
+
+        {/* ── Row 2 : Catégorie · Sexe ── */}
+        <Grid container spacing={1.5} alignItems="flex-start">
+          <Grid item xs={12} sm={4}>
+            <FormControl fullWidth required size="small" error={Boolean(categoryErr)}>
+              <InputLabel>Catégorie</InputLabel>
+              <Select value={ath.category} label="Catégorie"
+                onChange={e => onUpdate({ category: e.target.value })}>
+                {categories.map(c => <MenuItem key={c} value={c}>{c}</MenuItem>)}
+              </Select>
+              {categoryErr && <FormHelperText>{categoryErr}</FormHelperText>}
+            </FormControl>
+          </Grid>
+          <Grid item xs={12} sm={8}>
+            <Typography variant="caption" sx={{ display: 'block', mb: 0.75, fontSize: '0.78rem', color: sexErr ? 'error.main' : 'text.secondary' }}>
+              Sexe *
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              {['F', 'M'].map(s => (
+                <Button key={s} type="button" size="small"
+                  variant={ath.sex === s ? 'contained' : 'outlined'}
+                  color={sexErr ? 'error' : 'primary'}
+                  onClick={() => onUpdate({ sex: s })}
+                  sx={{ minWidth: 52 }}>
+                  {s}
+                </Button>
+              ))}
+            </Box>
+            {sexErr && <FormHelperText error sx={{ ml: 0, mt: 0.5 }}>{sexErr}</FormHelperText>}
           </Grid>
         </Grid>
 
@@ -162,10 +203,6 @@ function AthleteBlock({ ath, ci, ai, club, onUpdate, onRemove, removeDisabled })
               <Typography variant="caption" color="text.secondary">
                 Licence : {ath._flaAthlete.licenceNumber}
               </Typography>
-            )}
-            {ath._flaAthlete.category && (
-              <Chip label={ath._flaAthlete.category} size="small" variant="outlined"
-                sx={{ height: 20, fontSize: '0.7rem' }} />
             )}
             <IconButton size="small" onClick={() => handleFlaSelect(null)}
               sx={{ color: 'text.disabled', p: 0.25 }}>
@@ -219,7 +256,8 @@ function AthleteBlock({ ath, ci, ai, club, onUpdate, onRemove, removeDisabled })
 
 // ── Main form ─────────────────────────────────────────────────────────────────
 const blankAthlete = () => ({
-  firstName: '', lastName: '', licenceNumber: '', bib: '', category: '',
+  firstName: '', lastName: '', licenceNumber: '', bib: '',
+  category: '-', sex: '',
   _flaAthlete: null, events: [''],
 });
 
@@ -238,6 +276,7 @@ export default function AuthorisationForm({ userProfile, onSubmitSuccess }) {
   const [emailsCc, setEmailsCc]   = useState([]);
   const [remarks, setRemarks]     = useState('');
   const [loading, setLoading]     = useState(false);
+  const [athErrors, setAthErrors] = useState({});
   const [competitions, setCompetitions] = useState([blankCompetition()]);
 
   const isValidEmail = v => /\S+@\S+\.\S+/.test(v);
@@ -267,6 +306,21 @@ export default function AuthorisationForm({ userProfile, onSubmitSuccess }) {
     e.preventDefault();
     setLoading(true);
 
+    // Validate sex + category for every athlete
+    const newAthErrors = {};
+    competitions.forEach((comp, ci) => {
+      comp.athletes.forEach((a, ai) => {
+        if (!a.sex) newAthErrors[`${ci}_${ai}_sex`] = 'Sexe obligatoire';
+        if (!a.category || a.category === '-') newAthErrors[`${ci}_${ai}_category`] = 'Catégorie obligatoire';
+      });
+    });
+    if (Object.keys(newAthErrors).length > 0) {
+      setAthErrors(newAthErrors);
+      setLoading(false);
+      return;
+    }
+    setAthErrors({});
+
     const competitionsPayload = competitions.map(comp => ({
       name: comp.name, place: comp.place, country: comp.country,
       dates: comp.dates, site: comp.site, organiser: comp.organiser,
@@ -276,6 +330,7 @@ export default function AuthorisationForm({ userProfile, onSubmitSuccess }) {
         licenceNumber: a.licenceNumber || '',
         bib:           a.bib          || '',
         category:      a.category     || (a._flaAthlete?.category || ''),
+        sex:           a.sex          || '',
         club:          a._flaAthlete?.club || club,
         events:        a.events,
       })),
@@ -304,7 +359,7 @@ export default function AuthorisationForm({ userProfile, onSubmitSuccess }) {
           athletes: comp.athletes.map(a => ({
             firstName: a.firstName, lastName: a.lastName,
             licenceNumber: a.licenceNumber, bib: a.bib,
-            sex: '', category: a.category || '-',
+            sex: a.sex || '', category: a.category || '-',
             performances: [{ event: a.events[0] || '', result: '', wind: '', rank: '' }],
           })),
         })),
@@ -470,6 +525,7 @@ export default function AuthorisationForm({ userProfile, onSubmitSuccess }) {
                     onUpdate={patch => updAthlete(ci, ai, patch)}
                     onRemove={() => removeAthlete(ci, ai)}
                     removeDisabled={comp.athletes.length === 1}
+                    errors={athErrors}
                   />
                 ))}
               </Box>

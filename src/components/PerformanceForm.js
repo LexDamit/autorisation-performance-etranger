@@ -10,7 +10,6 @@ import PersonAddIcon     from '@mui/icons-material/PersonAdd';
 import EmojiEventsIcon   from '@mui/icons-material/EmojiEvents';
 import TimerOutlinedIcon from '@mui/icons-material/TimerOutlined';
 import InfoOutlinedIcon  from '@mui/icons-material/InfoOutlined';
-import LinkIcon          from '@mui/icons-material/Link';
 import LinkOffIcon       from '@mui/icons-material/LinkOff';
 import BadgeIcon         from '@mui/icons-material/Badge';
 import { addDoc, doc, updateDoc, collection, serverTimestamp } from 'firebase/firestore';
@@ -380,15 +379,16 @@ export default function PerformanceForm({ userProfile, prefill, docId, onSubmitS
                       removeDisabled={comp.athletes.length === 1}
                     />
                     <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                      {/* Name row + FLA search */}
+
+                      {/* ── Row 1 : Prénom · Nom · Dossard ── */}
                       <Grid container spacing={1.5} alignItems="flex-start">
-                        <Grid item xs={6} sm={3}>
+                        <Grid item xs={6} sm={4}>
                           <TextField fullWidth required size="small" label="Prénom"
                             value={ath.firstName} onChange={e => updAth(ci, ai, { firstName: e.target.value })}
                             error={hasError(`comp[${ci}].ath[${ai}].firstName`)}
                             helperText={getError(`comp[${ci}].ath[${ai}].firstName`)} />
                         </Grid>
-                        <Grid item xs={6} sm={3}>
+                        <Grid item xs={6} sm={4}>
                           <TextField fullWidth required size="small" label="Nom"
                             value={ath.lastName} onChange={e => updAth(ci, ai, { lastName: e.target.value })}
                             error={hasError(`comp[${ci}].ath[${ai}].lastName`)}
@@ -404,6 +404,7 @@ export default function PerformanceForm({ userProfile, prefill, docId, onSubmitS
                                   firstName: val.firstName, lastName: val.lastName,
                                   licenceNumber: val.licenceNumber || '',
                                   bib: val.bib || '', category: val.category || '-',
+                                  sex: val.sex || '',
                                   _flaAthlete: val,
                                 });
                               } else {
@@ -436,13 +437,15 @@ export default function PerformanceForm({ userProfile, prefill, docId, onSubmitS
                               </Box>
                             )}
                             renderInput={params => (
-                              <TextField {...params} size="small" label="Lier à un athlète FLA"
-                                placeholder="Nom ou dossard…"
+                              <TextField {...params} size="small" label="Dossard"
+                                placeholder="Rechercher par nom…"
                                 InputProps={{
                                   ...params.InputProps,
                                   startAdornment: (
                                     <>
-                                      <LinkIcon sx={{ fontSize: 15, color: 'text.disabled', mr: 0.5 }} />
+                                      <Tooltip title="Vous pouvez rechercher le dossard par nom dans cette case" placement="top">
+                                        <InfoOutlinedIcon sx={{ fontSize: 15, color: '#94A3B8', mr: 0.5, cursor: 'help', flexShrink: 0 }} />
+                                      </Tooltip>
                                       {params.InputProps.startAdornment}
                                     </>
                                   ),
@@ -451,7 +454,11 @@ export default function PerformanceForm({ userProfile, prefill, docId, onSubmitS
                             )}
                           />
                         </Grid>
-                        <Grid item xs={12} sm={2}>
+                      </Grid>
+
+                      {/* ── Row 2 : Catégorie · Sexe ── */}
+                      <Grid container spacing={1.5} alignItems="flex-start">
+                        <Grid item xs={12} sm={4}>
                           <FormControl fullWidth required size="small"
                             error={hasError(`comp[${ci}].ath[${ai}].category`)}>
                             <InputLabel>Catégorie</InputLabel>
@@ -461,6 +468,27 @@ export default function PerformanceForm({ userProfile, prefill, docId, onSubmitS
                             </Select>
                             <FormHelperText>{getError(`comp[${ci}].ath[${ai}].category`)}</FormHelperText>
                           </FormControl>
+                        </Grid>
+                        <Grid item xs={12} sm={8}>
+                          <Typography variant="caption"
+                            sx={{ display: 'block', mb: 0.75, fontSize: '0.78rem',
+                              color: hasError(`comp[${ci}].ath[${ai}].sex`) ? 'error.main' : 'text.secondary' }}>
+                            Sexe *
+                          </Typography>
+                          <Box sx={{ display: 'flex', gap: 1 }}>
+                            {['F', 'M'].map(s => (
+                              <Button key={s} type="button" size="small"
+                                variant={ath.sex === s ? 'contained' : 'outlined'}
+                                color={hasError(`comp[${ci}].ath[${ai}].sex`) ? 'error' : 'primary'}
+                                onClick={() => updAth(ci, ai, { sex: s })}
+                                sx={{ minWidth: 52 }}>
+                                {s}
+                              </Button>
+                            ))}
+                          </Box>
+                          {hasError(`comp[${ci}].ath[${ai}].sex`) && (
+                            <FormHelperText error sx={{ ml: 0 }}>Sexe obligatoire</FormHelperText>
+                          )}
                         </Grid>
                       </Grid>
 
@@ -484,28 +512,6 @@ export default function PerformanceForm({ userProfile, prefill, docId, onSubmitS
                           </IconButton>
                         </Box>
                       )}
-
-                      {/* Sex */}
-                      <Box>
-                        <Typography variant="caption" color="text.secondary"
-                          sx={{ display: 'block', mb: 0.75, fontSize: '0.78rem' }}>
-                          Sexe *
-                        </Typography>
-                        <Box sx={{ display: 'flex', gap: 1 }}>
-                          {['F', 'M'].map(s => (
-                            <Button key={s} size="small"
-                              variant={ath.sex === s ? 'contained' : 'outlined'}
-                              color={hasError(`comp[${ci}].ath[${ai}].sex`) ? 'error' : 'primary'}
-                              onClick={() => updAth(ci, ai, { sex: s })}
-                              sx={{ minWidth: 52 }}>
-                              {s}
-                            </Button>
-                          ))}
-                        </Box>
-                        {hasError(`comp[${ci}].ath[${ai}].sex`) && (
-                          <FormHelperText error sx={{ ml: 0 }}>Sexe obligatoire</FormHelperText>
-                        )}
-                      </Box>
 
                       {/* Performances */}
                       <Box>
