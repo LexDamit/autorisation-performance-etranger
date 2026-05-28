@@ -14,6 +14,7 @@ import BadgeIcon         from '@mui/icons-material/Badge';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 import athletes from '../data/athletes.json';
+import epreuves from '../data/epreuves.json';
 
 const clubs = [
   '-', 'CA Belvaux', 'CA Dudelange', 'CAE Grevenmacher', 'CA FOLA',
@@ -108,14 +109,16 @@ function AthleteBlock({ ath, ci, ai, club, onUpdate, onRemove, removeDisabled })
               getOptionLabel={a => a ? `${a.firstName} ${a.lastName}` : ''}
               isOptionEqualToValue={(a, b) => a.licenceNumber === b.licenceNumber}
               filterOptions={(opts, { inputValue }) => {
-                const q = inputValue.toLowerCase();
+                const q = inputValue.trim().toLowerCase();
+                if (q.length < 2) return [];
                 return opts.filter(a =>
-                  a.firstName.toLowerCase().includes(q) ||
-                  a.lastName.toLowerCase().includes(q) ||
-                  String(a.bib || '').includes(q) ||
-                  (a.licenceNumber || '').includes(q)
-                ).slice(0, 50);
+                  `${a.firstName} ${a.lastName}`.toLowerCase().includes(q) ||
+                  a.lastName.toLowerCase().startsWith(q) ||
+                  a.firstName.toLowerCase().startsWith(q) ||
+                  String(a.bib || '').includes(q)
+                ).slice(0, 30);
               }}
+              noOptionsText="Tapez au moins 2 lettres pour chercher…"
               renderOption={(props, a) => (
                 <Box component="li" {...props} key={a.licenceNumber}>
                   <Box>
@@ -180,10 +183,16 @@ function AthleteBlock({ ath, ci, ai, club, onUpdate, onRemove, removeDisabled })
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
             {ath.events.map((ev, ei) => (
               <Box key={ei} sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                <TextField
-                  size="small" fullWidth placeholder="ex: 100m, Saut en hauteur…"
+                <Autocomplete freeSolo fullWidth
+                  options={epreuves.map(e => e.discipline)}
                   value={ev}
-                  onChange={e => onUpdate({ events: ath.events.map((x, i) => i === ei ? e.target.value : x) })}
+                  onChange={(_, v) => onUpdate({ events: ath.events.map((x, i) => i === ei ? (v || '') : x) })}
+                  onInputChange={(_, v) => onUpdate({ events: ath.events.map((x, i) => i === ei ? v : x) })}
+                  ListboxProps={{ sx: { maxHeight: 400 } }}
+                  renderInput={params => (
+                    <TextField {...params} size="small" fullWidth
+                      placeholder="ex: 100m, Saut en hauteur…" />
+                  )}
                 />
                 <IconButton size="small"
                   onClick={() => {
@@ -196,8 +205,8 @@ function AthleteBlock({ ath, ci, ai, club, onUpdate, onRemove, removeDisabled })
                 </IconButton>
               </Box>
             ))}
-            <Button size="small" variant="outlined" startIcon={<AddIcon />}
-              onClick={() => onUpdate({ events: [...ath.events, ''] })}
+            <Button type="button" size="small" variant="outlined" startIcon={<AddIcon />}
+              onClick={e => { e.preventDefault(); onUpdate({ events: [...ath.events, ''] }); }}
               sx={{ alignSelf: 'flex-start', mt: 0.25 }}>
               Épreuve
             </Button>
@@ -226,21 +235,12 @@ export default function AuthorisationForm({ userProfile, onSubmitSuccess }) {
   const [email, setEmail]         = useState(userProfile?.email || '');
   const [firstName, setFirstName] = useState(userProfile?.firstName || '');
   const [lastName, setLastName]   = useState(userProfile?.lastName  || '');
-  const [ccInput, setCcInput]     = useState('');
   const [emailsCc, setEmailsCc]   = useState([]);
   const [remarks, setRemarks]     = useState('');
   const [loading, setLoading]     = useState(false);
   const [competitions, setCompetitions] = useState([blankCompetition()]);
 
   const isValidEmail = v => /\S+@\S+\.\S+/.test(v);
-
-  const addCcEmail = () => {
-    const c = (ccInput || '').trim();
-    if (!c) return;
-    if (!isValidEmail(c)) { alert('Adresse email invalide !'); return; }
-    if (!emailsCc.includes(c)) setEmailsCc(p => [...p, c]);
-    setCcInput('');
-  };
 
   // Competition helpers
   const updComp    = (ci, f, v)  => setCompetitions(u => { const x=[...u]; x[ci]={...x[ci],[f]:v}; return x; });
@@ -317,14 +317,16 @@ export default function AuthorisationForm({ userProfile, onSubmitSuccess }) {
         type: 'performance',
       });
 
-      await fetch('https://sendauthorisationemail-t2aq3fohza-uc.a.run.app', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      }).catch(err => console.warn('Email failed:', err));
+      if (process.env.NODE_ENV !== 'development') {
+        await fetch('https://sendauthorisationemail-t2aq3fohza-uc.a.run.app', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        }).catch(err => console.warn('Email failed:', err));
+      }
 
       if (onSubmitSuccess) onSubmitSuccess();
       setClub(prefillClub); setEmail(''); setFirstName(''); setLastName('');
-      setCcInput(''); setEmailsCc([]); setRemarks('');
+      setEmailsCc([]); setRemarks('');
       setCompetitions([blankCompetition()]);
     } catch (err) {
       console.error(err);
@@ -362,33 +364,32 @@ export default function AuthorisationForm({ userProfile, onSubmitSuccess }) {
               <TextField fullWidth required size="small" label="Nom du demandeur"
                 value={lastName} onChange={e => setLastName(e.target.value)} />
             </Grid>
-            <Grid item xs={12} sm={6} md={4}>
+            <Grid item xs={12} sm={5} md={4}>
               <TextField fullWidth required size="small" type="email" label="Email du demandeur"
                 value={email} onChange={e => setEmail(e.target.value)} />
             </Grid>
-            <Grid item xs={12} sm={8} md={5}>
-              <TextField fullWidth size="small" label="Email en copie (CC)"
-                value={ccInput} onChange={e => setCcInput(e.target.value)}
-                placeholder="Tapez un email puis appuyez sur Entrée ou quittez le champ"
-                onBlur={() => { if (ccInput.trim()) addCcEmail(); }}
-                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addCcEmail(); } }} />
+            <Grid item xs={12} sm={7} md={8}>
+              <Autocomplete
+                multiple freeSolo fullWidth
+                options={[]}
+                value={emailsCc}
+                onChange={(_, newValue) => {
+                  const last = newValue[newValue.length - 1];
+                  if (last && !isValidEmail(last.trim())) return;
+                  setEmailsCc(newValue.map(v => v.trim()).filter(Boolean));
+                }}
+                renderTags={(value, getTagProps) =>
+                  value.map((option, index) => (
+                    <Chip key={index} label={option} size="small" variant="outlined"
+                      sx={{ fontSize: '0.78rem' }} {...getTagProps({ index })} />
+                  ))
+                }
+                renderInput={params => (
+                  <TextField {...params} fullWidth size="small" label="Emails en copie (CC)"
+                    placeholder={emailsCc.length === 0 ? 'Tapez un email et appuyez sur Entrée…' : ''} />
+                )}
+              />
             </Grid>
-            <Grid item xs={12} sm={4} md={3} sx={{ display: 'flex' }}>
-              <Button fullWidth variant="outlined" size="small" startIcon={<AddIcon />}
-                onClick={addCcEmail} sx={{ alignSelf: 'center', mt: '8px', height: 40 }}>
-                Ajouter CC
-              </Button>
-            </Grid>
-            {emailsCc.length > 0 && (
-              <Grid item xs={12}>
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
-                  {emailsCc.map((m, i) => (
-                    <Chip key={i} label={m} size="small"
-                      onDelete={() => setEmailsCc(p => p.filter((_, j) => j !== i))} />
-                  ))}
-                </Box>
-              </Grid>
-            )}
           </Grid>
         </Box>
       </Paper>
@@ -448,8 +449,8 @@ export default function AuthorisationForm({ userProfile, onSubmitSuccess }) {
                     </IconButton>
                   </Box>
                 ))}
-                <Button variant="outlined" size="small" startIcon={<AddIcon />}
-                  onClick={() => addDate(ci)}>
+                <Button type="button" variant="outlined" size="small" startIcon={<AddIcon />}
+                  onClick={e => { e.preventDefault(); addDate(ci); }}>
                   Jour
                 </Button>
               </Box>
@@ -472,8 +473,8 @@ export default function AuthorisationForm({ userProfile, onSubmitSuccess }) {
                   />
                 ))}
               </Box>
-              <Button variant="outlined" size="small" startIcon={<PersonAddIcon />}
-                onClick={() => addAthlete(ci)} sx={{ mt: 1.5 }}>
+              <Button type="button" variant="outlined" size="small" startIcon={<PersonAddIcon />}
+                onClick={e => { e.preventDefault(); addAthlete(ci); }} sx={{ mt: 1.5 }}>
                 + Athlète
               </Button>
             </Box>

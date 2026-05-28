@@ -30,7 +30,7 @@ function PerfRow({ doc, comp, onComplete, onUnlink }) {
       </TableCell>
 
       {/* Club */}
-      <TableCell sx={{ pt: 2 }}>
+      <TableCell sx={{ pt: 2, display: { xs: 'none', sm: 'table-cell' } }}>
         <Typography variant="body2" fontWeight={500}>{doc.club}</Typography>
       </TableCell>
 
@@ -251,12 +251,12 @@ export default function PerformancePage({ userProfile }) {
           </Typography>
         </Paper>
       ) : (
-        <TableContainer component={Paper} sx={{ borderRadius: 3 }}>
+        <TableContainer component={Paper} sx={{ borderRadius: 3, overflowX: 'auto' }}>
           <Table>
             <TableHead>
               <TableRow>
                 <TableCell>Soumis le</TableCell>
-                <TableCell>Club</TableCell>
+                <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>Club</TableCell>
                 <TableCell>Compétition</TableCell>
                 <TableCell>Athlètes &amp; Résultats</TableCell>
                 <TableCell>Statut</TableCell>

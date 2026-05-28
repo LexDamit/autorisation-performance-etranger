@@ -33,12 +33,12 @@ function Row({ row, onAction }) {
         <TableCell sx={{ color: 'text.secondary', fontSize: '0.82rem', whiteSpace: 'nowrap' }}>
           {row.createdAt?.toDate().toLocaleDateString('fr-LU') || '—'}
         </TableCell>
-        <TableCell>
+        <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>
           <Typography variant="body2" fontWeight={500}>{row.club}</Typography>
         </TableCell>
         <TableCell>
           <Typography variant="body2" fontWeight={500}>{row.firstName} {row.lastName}</Typography>
-          <Typography variant="caption" color="text.secondary">{row.email}</Typography>
+          <Typography variant="caption" color="text.secondary" sx={{ display: { xs: 'none', sm: 'block' } }}>{row.email}</Typography>
         </TableCell>
         <TableCell>
           <Typography variant="body2">
@@ -161,7 +161,7 @@ export default function FedStaffAutorisations() {
         acceptedAt: serverTimestamp(),
         ...(confirmComment.trim() ? { comment: confirmComment.trim() } : {}),
       });
-      if (action === 'accepted') {
+      if (action === 'accepted' && process.env.NODE_ENV !== 'development') {
         await fetch('https://sendacceptanceemail-t2aq3fohza-uc.a.run.app', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -238,13 +238,13 @@ export default function FedStaffAutorisations() {
           <Typography color="text.secondary">Aucune demande dans cette catégorie.</Typography>
         </Paper>
       ) : (
-        <TableContainer component={Paper} sx={{ borderRadius: 3 }}>
+        <TableContainer component={Paper} sx={{ borderRadius: 3, overflowX: 'auto' }}>
           <Table>
             <TableHead>
               <TableRow>
                 <TableCell padding="checkbox" />
                 <TableCell>Date</TableCell>
-                <TableCell>Club</TableCell>
+                <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>Club</TableCell>
                 <TableCell>Demandeur</TableCell>
                 <TableCell>Compétitions</TableCell>
                 <TableCell>Statut</TableCell>

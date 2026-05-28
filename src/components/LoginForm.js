@@ -2,19 +2,18 @@ import React, { useState } from 'react';
 import { auth } from '../firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import {
-  Box, Paper, Typography, TextField, Button, Divider,
-  Alert, CircularProgress, InputAdornment, IconButton,
+  Box, Paper, Typography, TextField, Button,
+  Alert, CircularProgress, InputAdornment, IconButton, Link,
 } from '@mui/material';
-import LockOutlinedIcon  from '@mui/icons-material/LockOutlined';
 import VisibilityIcon    from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 
 export default function LoginForm({ onLogin, onSwitchToSignUp }) {
-  const [email, setEmail]     = useState('');
+  const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
-  const [showPwd, setShowPwd] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError]     = useState('');
+  const [showPwd, setShowPwd]   = useState(false);
+  const [loading, setLoading]   = useState(false);
+  const [error, setError]       = useState('');
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -32,54 +31,52 @@ export default function LoginForm({ onLogin, onSwitchToSignUp }) {
   return (
     <Box sx={{
       minHeight: '100vh',
-      background: 'linear-gradient(135deg, #0D1B4E 0%, #1B3A8F 50%, #4B6AC4 100%)',
+      background: 'linear-gradient(160deg, #EAF1FB 0%, #D6E8F7 50%, #EDF4FB 100%)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       p: 2,
     }}>
-      <Box sx={{ width: '100%', maxWidth: 420 }}>
-
-        {/* FLA branding above card */}
-        <Box sx={{ textAlign: 'center', mb: 3.5 }}>
-          <Box component="img" src="/federation_logo.png" alt="FLA"
-            sx={{ height: 72, filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.4))' }} />
-          <Typography variant="h6" sx={{ color: 'white', fontWeight: 700, mt: 1.5, lineHeight: 1.2 }}>
-            Fédération Luxembourgeoise
-          </Typography>
-          <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.65)' }}>
-            d'Athlétisme
-          </Typography>
-        </Box>
-
-        {/* Card */}
-        <Paper sx={{ p: { xs: 3, sm: 4 }, borderRadius: 3, boxShadow: '0 24px 64px rgba(0,0,0,0.35)', border: 'none' }}>
-          {/* Card header */}
-          <Box sx={{ textAlign: 'center', mb: 3 }}>
-            <Box sx={{
-              width: 52, height: 52, borderRadius: '50%',
-              bgcolor: '#EEF2FF', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              mx: 'auto', mb: 1.5,
-            }}>
-              <LockOutlinedIcon sx={{ color: '#3730A3', fontSize: 22 }} />
-            </Box>
-            <Typography variant="h6" fontWeight={700}>Connexion</Typography>
-            <Typography variant="caption" color="text.secondary">
-              Gestion des performances à l'étranger
-            </Typography>
+      <Box sx={{ width: '100%', maxWidth: 400 }}>
+        <Paper elevation={0} sx={{
+          p: { xs: 3.5, sm: 4.5 },
+          borderRadius: 4,
+          boxShadow: '0 4px 40px rgba(0,0,0,0.10)',
+          border: '1px solid rgba(255,255,255,0.8)',
+        }}>
+          {/* Logo */}
+          <Box sx={{ textAlign: 'center', mb: 3.5 }}>
+            <Box component="img" src="/fla_etranger.png" alt="FLA Étranger"
+              sx={{ height: 64, width: 'auto', maxWidth: 220, objectFit: 'contain' }} />
           </Box>
 
-          {error && <Alert severity="error" sx={{ mb: 2.5 }}>{error}</Alert>}
+          {/* Title */}
+          <Typography variant="h5" fontWeight={700} sx={{ mb: 0.5, color: '#0F172A' }}>
+            Login
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+            Performances à l'étranger — FLA
+          </Typography>
+
+          {error && <Alert severity="error" sx={{ mb: 2.5, borderRadius: 2 }}>{error}</Alert>}
 
           <Box component="form" onSubmit={handleLogin} sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             <TextField
-              fullWidth required label="Adresse email" type="email"
-              autoComplete="email" autoFocus
-              value={email} onChange={e => setEmail(e.target.value)}
+              fullWidth required
+              placeholder="Email"
+              type="email"
+              autoComplete="email"
+              autoFocus
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2, bgcolor: '#F8FAFC' } }}
             />
             <TextField
-              fullWidth required label="Mot de passe"
+              fullWidth required
+              placeholder="Password"
               type={showPwd ? 'text' : 'password'}
               autoComplete="current-password"
-              value={password} onChange={e => setPassword(e.target.value)}
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2, bgcolor: '#F8FAFC' } }}
               InputProps={{
                 endAdornment: (
                   <InputAdornment position="end">
@@ -93,30 +90,32 @@ export default function LoginForm({ onLogin, onSwitchToSignUp }) {
             <Button
               fullWidth type="submit" variant="contained" size="large"
               disabled={loading}
-              sx={{ mt: 0.5, py: 1.4, fontSize: '0.95rem' }}
+              sx={{
+                mt: 0.5, py: 1.5, fontSize: '0.95rem', fontWeight: 600,
+                borderRadius: 2.5,
+                bgcolor: '#0F172A',
+                '&:hover': { bgcolor: '#1E293B' },
+                boxShadow: 'none',
+              }}
             >
-              {loading ? <CircularProgress size={22} color="inherit" /> : 'Se connecter'}
+              {loading ? <CircularProgress size={22} color="inherit" /> : 'Sign in'}
             </Button>
           </Box>
 
-          <Divider sx={{ my: 2.5 }}>
-            <Typography variant="caption" color="text.secondary">ou</Typography>
-          </Divider>
-
-          <Box sx={{ textAlign: 'center' }}>
-            <Typography variant="body2" color="text.secondary" component="span">
-              Pas encore de compte ?{' '}
-            </Typography>
-            <Button
-              size="small" onClick={onSwitchToSignUp}
-              sx={{ fontWeight: 700, fontSize: '0.85rem', ml: 0.5, p: '2px 6px' }}
-            >
+          {/* Links */}
+          <Box sx={{ mt: 2.5, display: 'flex', flexWrap: 'wrap', gap: '4px 16px' }}>
+            <Link onClick={onSwitchToSignUp} underline="hover"
+              sx={{ fontSize: '0.82rem', color: '#1B3A8F', cursor: 'pointer' }}>
               Créer un compte
-            </Button>
+            </Link>
+            <Link href="mailto:informatique@fla.lu" underline="hover"
+              sx={{ fontSize: '0.82rem', color: '#1B3A8F' }}>
+              Mot de passe oublié
+            </Link>
           </Box>
         </Paper>
 
-        <Typography variant="caption" sx={{ display: 'block', textAlign: 'center', mt: 3, color: 'rgba(255,255,255,0.4)' }}>
+        <Typography variant="caption" sx={{ display: 'block', textAlign: 'center', mt: 2.5, color: '#94A3B8' }}>
           © {new Date().getFullYear()} Fédération Luxembourgeoise d'Athlétisme
         </Typography>
       </Box>

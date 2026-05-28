@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
   AppBar, Toolbar, Typography, Box, IconButton,
   Drawer, List, ListItem, ListItemButton, ListItemIcon,
-  ListItemText, useMediaQuery, useTheme, Avatar, Chip,
+  ListItemText, useMediaQuery, useTheme, Avatar, Chip, Divider,
 } from '@mui/material';
 import MenuIcon          from '@mui/icons-material/Menu';
 import HomeIcon          from '@mui/icons-material/Home';
@@ -15,7 +15,7 @@ import LogoutIcon        from '@mui/icons-material/Logout';
 import VisibilityIcon    from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 
-const DRAWER_WIDTH = 260;
+const DRAWER_WIDTH = 252;
 
 const ROLE_STYLES = {
   athlete:          { bg: '#EEF2FF', color: '#3730A3', label: 'Athlète' },
@@ -30,24 +30,38 @@ const PREVIEW_ROLES = [
   { value: 'federation_staff', label: 'Staff Fédération', color: '#FFF7ED', textColor: '#9A3412' },
 ];
 
-function buildNavItems(role) {
-  const items = [{ key: 'home', label: 'Accueil', icon: <HomeIcon fontSize="small" /> }];
+function buildNavSections(role) {
+  const sections = [];
+
+  const base = [{ key: 'home', label: 'Accueil', icon: <HomeIcon fontSize="small" /> }];
   if (role === 'athlete' || role === 'club' || role === 'admin') {
-    items.push(
-      { key: 'authorisation', label: 'Autorisations',  icon: <AssignmentIcon fontSize="small" /> },
-      { key: 'performance',   label: 'Performances',   icon: <SpeedIcon fontSize="small" /> },
+    base.push(
+      { key: 'authorisation', label: 'Autorisations', icon: <AssignmentIcon fontSize="small" /> },
+      { key: 'performance',   label: 'Performances',  icon: <SpeedIcon fontSize="small" /> },
     );
   }
+  sections.push({ label: 'Navigation', items: base });
+
   if (role === 'federation_staff' || role === 'admin') {
-    items.push(
-      { key: 'fed_autorisations', label: 'Valider autorisations', icon: <CheckCircleIcon fontSize="small" /> },
-      { key: 'fed_performances',  label: 'Vérification SELTEC',  icon: <ManageSearchIcon fontSize="small" /> },
-    );
+    sections.push({
+      label: 'Fédération',
+      items: [
+        { key: 'fed_autorisations', label: 'Valider autorisations', icon: <CheckCircleIcon fontSize="small" /> },
+        { key: 'fed_performances',  label: 'Vérification SELTEC',  icon: <ManageSearchIcon fontSize="small" /> },
+      ],
+    });
   }
+
   if (role === 'admin') {
-    items.push({ key: 'admin_users', label: 'Utilisateurs', icon: <PeopleIcon fontSize="small" /> });
+    sections.push({
+      label: 'Administration',
+      items: [
+        { key: 'admin_users', label: 'Utilisateurs', icon: <PeopleIcon fontSize="small" /> },
+      ],
+    });
   }
-  return items;
+
+  return sections;
 }
 
 export default function Layout({
@@ -55,16 +69,15 @@ export default function Layout({
   currentPage, onPageChange, onLogout,
   previewRole, onPreviewRoleChange,
 }) {
-  const actualRole  = userProfile?.role || 'athlete';
-  const displayRole = effectiveRole || actualRole;
-  const isAdmin     = actualRole === 'admin';
+  const actualRole   = userProfile?.role || 'athlete';
+  const displayRole  = effectiveRole || actualRole;
+  const isAdmin      = actualRole === 'admin';
 
-  const theme     = useTheme();
-  const isMobile  = useMediaQuery(theme.breakpoints.down('md'));
+  const theme    = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const navItems   = buildNavItems(displayRole);
-  const roleStyle  = ROLE_STYLES[displayRole] || ROLE_STYLES.athlete;
+  const sections    = buildNavSections(displayRole);
   const actualStyle = ROLE_STYLES[actualRole] || ROLE_STYLES.athlete;
 
   const initials = user
@@ -74,33 +87,39 @@ export default function Layout({
   const drawerContent = (
     <Box sx={{
       display: 'flex', flexDirection: 'column', height: '100%',
-      background: 'linear-gradient(180deg, #0D1B4E 0%, #1B3A8F 100%)',
-      color: 'white',
+      bgcolor: 'white',
     }}>
       {/* Logo */}
-      <Box sx={{ px: 2.5, py: 2, borderBottom: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'center' }}>
-        <Box sx={{ bgcolor: 'white', borderRadius: 2, px: 1.5, py: 1, display: 'inline-flex', alignItems: 'center' }}>
-          <Box component="img" src="/fla_etranger.png" alt="FLA Étranger"
-            sx={{ height: 48, width: 'auto', maxWidth: 190, objectFit: 'contain' }} />
-        </Box>
+      <Box sx={{ px: 2.5, pt: 2.5, pb: 2 }}>
+        <Box component="img" src="/fla_etranger.png" alt="FLA Étranger"
+          sx={{ height: 40, width: 'auto', maxWidth: 180, objectFit: 'contain' }} />
       </Box>
+
+      <Divider sx={{ borderColor: '#F1F5F9' }} />
 
       {/* User info */}
       {user && (
-        <Box sx={{ px: 2, py: 1.5, mx: 2, mt: 2, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.08)', mb: 1 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <Avatar sx={{ width: 34, height: 34, bgcolor: actualStyle.bg, color: actualStyle.color, fontSize: '0.85rem', fontWeight: 700 }}>
+        <Box sx={{ px: 1.5, pt: 1.5, pb: 1 }}>
+          <Box sx={{
+            display: 'flex', alignItems: 'center', gap: 1.25,
+            p: 1.25, borderRadius: 2, bgcolor: '#F8FAFC',
+          }}>
+            <Avatar sx={{
+              width: 32, height: 32,
+              bgcolor: actualStyle.bg, color: actualStyle.color,
+              fontSize: '0.8rem', fontWeight: 700,
+            }}>
               {initials}
             </Avatar>
             <Box sx={{ minWidth: 0 }}>
               <Typography variant="caption" noWrap display="block"
-                sx={{ color: 'rgba(255,255,255,0.9)', fontWeight: 500, fontSize: '0.78rem' }}>
+                sx={{ fontWeight: 600, fontSize: '0.78rem', color: '#0F172A', lineHeight: 1.3 }}>
                 {userProfile?.firstName
                   ? `${userProfile.firstName} ${userProfile.lastName || ''}`
                   : user.email}
               </Typography>
-              <Box sx={{ display: 'inline-flex', px: 1, py: 0.2, borderRadius: 1, bgcolor: actualStyle.bg, mt: 0.25 }}>
-                <Typography variant="caption" sx={{ color: actualStyle.color, fontWeight: 700, fontSize: '0.66rem' }}>
+              <Box sx={{ display: 'inline-flex', px: 0.75, py: 0.1, borderRadius: 0.75, bgcolor: actualStyle.bg, mt: 0.25 }}>
+                <Typography variant="caption" sx={{ color: actualStyle.color, fontWeight: 700, fontSize: '0.62rem' }}>
                   {actualStyle.label}
                 </Typography>
               </Box>
@@ -109,92 +128,114 @@ export default function Layout({
         </Box>
       )}
 
-      {/* Nav items */}
+      <Divider sx={{ borderColor: '#F1F5F9' }} />
+
+      {/* Nav sections */}
       {user && (
-        <List sx={{ flexGrow: 1, px: 1, py: 1 }}>
-          <Typography variant="caption" sx={{ px: 1.5, py: 0.5, display: 'block', color: 'rgba(255,255,255,0.4)', fontSize: '0.65rem', letterSpacing: '0.08em', textTransform: 'uppercase', mb: 0.5 }}>
-            {previewRole ? `Navigation — ${roleStyle.label}` : 'Navigation'}
-          </Typography>
-          {navItems.map((item) => {
-            const isActive = currentPage === item.key;
-            return (
-              <ListItem key={item.key} disablePadding sx={{ mb: 0.25 }}>
-                <ListItemButton
-                  selected={isActive}
-                  onClick={() => { onPageChange(item.key); setMobileOpen(false); }}
-                  sx={{
-                    borderRadius: 2, py: 1, px: 1.5,
-                    color: isActive ? 'white' : 'rgba(255,255,255,0.65)',
-                    bgcolor: isActive ? 'rgba(255,255,255,0.15) !important' : 'transparent',
-                    backdropFilter: isActive ? 'blur(4px)' : 'none',
-                    borderLeft: isActive ? '3px solid rgba(255,255,255,0.8)' : '3px solid transparent',
-                    '&:hover': { bgcolor: 'rgba(255,255,255,0.08) !important', color: 'white' },
-                    transition: 'all 0.15s ease',
-                  }}
-                >
-                  <ListItemIcon sx={{ minWidth: 34, color: 'inherit' }}>{item.icon}</ListItemIcon>
-                  <ListItemText primary={item.label}
-                    primaryTypographyProps={{ fontSize: '0.875rem', fontWeight: isActive ? 600 : 400 }} />
-                </ListItemButton>
-              </ListItem>
-            );
-          })}
-        </List>
+        <Box sx={{ flexGrow: 1, overflowY: 'auto', px: 1.5, py: 1.5 }}>
+          {sections.map((section, si) => (
+            <Box key={section.label} sx={{ mb: si < sections.length - 1 ? 2 : 0 }}>
+              <Typography variant="caption" sx={{
+                px: 1, mb: 0.5, display: 'block',
+                fontSize: '0.62rem', fontWeight: 700,
+                color: '#94A3B8', letterSpacing: '0.08em', textTransform: 'uppercase',
+              }}>
+                {section.label}
+              </Typography>
+              <List disablePadding>
+                {section.items.map(item => {
+                  const isActive = currentPage === item.key;
+                  return (
+                    <ListItem key={item.key} disablePadding sx={{ mb: 0.25 }}>
+                      <ListItemButton
+                        selected={isActive}
+                        onClick={() => { onPageChange(item.key); setMobileOpen(false); }}
+                        sx={{
+                          borderRadius: 1.5, py: 0.85, px: 1.25,
+                          color: isActive ? '#1B3A8F' : '#475569',
+                          bgcolor: isActive ? '#EEF2FF !important' : 'transparent',
+                          '&:hover': { bgcolor: '#F8FAFC !important', color: '#1B3A8F' },
+                          transition: 'all 0.12s ease',
+                        }}
+                      >
+                        <ListItemIcon sx={{ minWidth: 30, color: isActive ? '#1B3A8F' : '#94A3B8' }}>
+                          {item.icon}
+                        </ListItemIcon>
+                        <ListItemText
+                          primary={item.label}
+                          primaryTypographyProps={{
+                            fontSize: '0.855rem',
+                            fontWeight: isActive ? 600 : 400,
+                            color: 'inherit',
+                          }}
+                        />
+                      </ListItemButton>
+                    </ListItem>
+                  );
+                })}
+              </List>
+            </Box>
+          ))}
+        </Box>
       )}
 
       {/* Admin "View as" role picker */}
       {user && isAdmin && (
-        <Box sx={{ mx: 1, mb: 1, p: 1.5, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 1 }}>
-            <VisibilityIcon sx={{ fontSize: 13, color: 'rgba(255,255,255,0.5)' }} />
-            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.65rem', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-              Prévisualiser en tant que
-            </Typography>
-          </Box>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-            <Chip
-              label="Moi (Admin)"
-              size="small"
-              clickable
-              onClick={() => onPreviewRoleChange(null)}
-              sx={{
-                fontSize: '0.7rem', height: 24,
-                bgcolor: !previewRole ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.08)',
-                color: 'white',
-                border: !previewRole ? '1px solid rgba(255,255,255,0.4)' : '1px solid rgba(255,255,255,0.15)',
-                '&:hover': { bgcolor: 'rgba(255,255,255,0.2) !important' },
-              }}
-            />
-            {PREVIEW_ROLES.map(r => (
-              <Chip
-                key={r.value}
-                label={r.label}
-                size="small"
-                clickable
-                onClick={() => onPreviewRoleChange(r.value)}
+        <>
+          <Divider sx={{ borderColor: '#F1F5F9' }} />
+          <Box sx={{ mx: 1.5, my: 1.5, p: 1.25, borderRadius: 2, bgcolor: '#F8FAFC', border: '1px solid #E2E8F0' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.75 }}>
+              <VisibilityIcon sx={{ fontSize: 12, color: '#94A3B8' }} />
+              <Typography variant="caption" sx={{
+                color: '#94A3B8', fontSize: '0.62rem',
+                letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 700,
+              }}>
+                Aperçu
+              </Typography>
+            </Box>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+              <Chip label="Admin" size="small" clickable
+                onClick={() => onPreviewRoleChange(null)}
                 sx={{
-                  fontSize: '0.7rem', height: 24,
-                  bgcolor: previewRole === r.value ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.08)',
-                  color: 'white',
-                  border: previewRole === r.value ? '1px solid rgba(255,255,255,0.4)' : '1px solid rgba(255,255,255,0.15)',
-                  '&:hover': { bgcolor: 'rgba(255,255,255,0.2) !important' },
+                  fontSize: '0.68rem', height: 22,
+                  bgcolor: !previewRole ? '#1B3A8F' : 'white',
+                  color: !previewRole ? 'white' : '#475569',
+                  border: '1px solid #E2E8F0',
+                  '&:hover': { bgcolor: !previewRole ? '#1E3A8A' : '#F1F5F9' },
                 }}
               />
-            ))}
+              {PREVIEW_ROLES.map(r => (
+                <Chip key={r.value} label={r.label} size="small" clickable
+                  onClick={() => onPreviewRoleChange(r.value)}
+                  sx={{
+                    fontSize: '0.68rem', height: 22,
+                    bgcolor: previewRole === r.value ? r.color : 'white',
+                    color: previewRole === r.value ? r.textColor : '#475569',
+                    border: '1px solid #E2E8F0',
+                    '&:hover': { bgcolor: r.color },
+                  }}
+                />
+              ))}
+            </Box>
           </Box>
-        </Box>
+        </>
       )}
+
+      <Divider sx={{ borderColor: '#F1F5F9' }} />
 
       {/* Logout */}
       {user && (
-        <Box sx={{ p: 1, borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+        <Box sx={{ px: 1.5, py: 1 }}>
           <ListItemButton onClick={onLogout} sx={{
-            borderRadius: 2, py: 1, px: 1.5,
-            color: 'rgba(255,255,255,0.5)',
-            '&:hover': { bgcolor: 'rgba(239,68,68,0.15) !important', color: '#FCA5A5' },
+            borderRadius: 1.5, py: 0.85, px: 1.25,
+            color: '#94A3B8',
+            '&:hover': { bgcolor: '#FEF2F2 !important', color: '#EF4444' },
           }}>
-            <ListItemIcon sx={{ minWidth: 34, color: 'inherit' }}><LogoutIcon fontSize="small" /></ListItemIcon>
-            <ListItemText primary="Déconnexion" primaryTypographyProps={{ fontSize: '0.875rem' }} />
+            <ListItemIcon sx={{ minWidth: 30, color: 'inherit' }}>
+              <LogoutIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText primary="Déconnexion"
+              primaryTypographyProps={{ fontSize: '0.855rem', fontWeight: 400, color: 'inherit' }} />
           </ListItemButton>
         </Box>
       )}
@@ -202,22 +243,20 @@ export default function Layout({
   );
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'background.default' }}>
+    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: '#F8FAFC' }}>
       {/* Mobile top bar */}
       {isMobile && (
         <AppBar position="fixed" elevation={0}
-          sx={{ bgcolor: '#0D1B4E', borderBottom: '1px solid rgba(255,255,255,0.1)', zIndex: theme.zIndex.drawer + 1 }}>
+          sx={{ bgcolor: 'white', borderBottom: '1px solid #E2E8F0', zIndex: theme.zIndex.drawer + 1 }}>
           <Toolbar variant="dense">
-            <IconButton edge="start" onClick={() => setMobileOpen(!mobileOpen)} sx={{ mr: 1, color: 'white' }}>
+            <IconButton edge="start" onClick={() => setMobileOpen(!mobileOpen)} sx={{ mr: 1, color: '#475569' }}>
               <MenuIcon />
             </IconButton>
-            <Box sx={{ bgcolor: 'white', borderRadius: 1.5, px: 1, py: 0.5, mr: 1, display: 'inline-flex' }}>
-              <Box component="img" src="/fla_etranger.png" alt="FLA Étranger"
-                sx={{ height: 26, width: 'auto', maxWidth: 110, objectFit: 'contain' }} />
-            </Box>
+            <Box component="img" src="/fla_etranger.png" alt="FLA Étranger"
+              sx={{ height: 28, width: 'auto', maxWidth: 120, objectFit: 'contain' }} />
             {previewRole && (
               <Chip label={`Vue : ${ROLE_STYLES[previewRole]?.label}`} size="small"
-                sx={{ ml: 'auto', bgcolor: 'rgba(255,200,0,0.2)', color: '#FFD700', borderColor: '#FFD700', fontSize: '0.65rem' }}
+                sx={{ ml: 'auto', bgcolor: '#FEF3C7', color: '#92400E', borderColor: '#F59E0B', fontSize: '0.65rem' }}
                 variant="outlined" />
             )}
           </Toolbar>
@@ -234,7 +273,7 @@ export default function Layout({
         <Drawer variant="permanent" open
           sx={{
             display: { xs: 'none', md: 'block' },
-            '& .MuiDrawer-paper': { width: DRAWER_WIDTH, border: 'none', boxShadow: '4px 0 20px rgba(0,0,0,0.15)' },
+            '& .MuiDrawer-paper': { width: DRAWER_WIDTH, border: 'none', boxShadow: '1px 0 0 #E2E8F0' },
           }}>
           {drawerContent}
         </Drawer>
@@ -245,29 +284,29 @@ export default function Layout({
         flexGrow: 1,
         width: { md: `calc(100% - ${DRAWER_WIDTH}px)` },
         minHeight: '100vh',
-        bgcolor: 'background.default',
+        bgcolor: '#F8FAFC',
         overflow: 'auto',
         display: 'flex', flexDirection: 'column',
       }}>
         {/* Preview banner */}
         {previewRole && (
           <Box sx={{
-            px: 3, py: 1,
-            bgcolor: '#FEFCE8',
-            borderBottom: '2px solid #F59E0B',
+            px: 3, py: 0.875,
+            bgcolor: '#FFFBEB',
+            borderBottom: '1px solid #FDE68A',
             display: 'flex', alignItems: 'center', gap: 1.5,
             position: 'sticky', top: isMobile ? 48 : 0, zIndex: 10,
           }}>
-            <VisibilityIcon sx={{ fontSize: 18, color: '#92400E' }} />
-            <Typography variant="body2" sx={{ color: '#92400E', fontWeight: 600 }}>
+            <VisibilityIcon sx={{ fontSize: 16, color: '#92400E' }} />
+            <Typography variant="body2" sx={{ color: '#92400E', fontWeight: 600, fontSize: '0.82rem' }}>
               Mode prévisualisation — Vue {ROLE_STYLES[previewRole]?.label}
             </Typography>
             <Chip
-              label="Quitter la prévisualisation"
+              label="Quitter"
               size="small"
-              icon={<VisibilityOffIcon style={{ fontSize: 14 }} />}
+              icon={<VisibilityOffIcon style={{ fontSize: 13 }} />}
               onClick={() => onPreviewRoleChange(null)}
-              sx={{ ml: 'auto', cursor: 'pointer', bgcolor: '#FEF3C7', color: '#92400E', borderColor: '#F59E0B', fontSize: '0.75rem' }}
+              sx={{ ml: 'auto', cursor: 'pointer', bgcolor: '#FEF3C7', color: '#92400E', borderColor: '#F59E0B', fontSize: '0.72rem' }}
               variant="outlined"
             />
           </Box>

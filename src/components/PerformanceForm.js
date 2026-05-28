@@ -71,7 +71,7 @@ const blankAthlete = () => ({
   performances: [blankPerf()],
 });
 const blankComp = () => ({
-  name: '', place: '', country: '', date: '', site: '', type: 'outdoor',
+  name: '', place: '', country: '', dates: [''], site: '', type: 'outdoor',
   athletes: [blankAthlete()],
 });
 
@@ -80,7 +80,6 @@ export default function PerformanceForm({ userProfile, prefill, docId, onSubmitS
 
   const [club, setClub]         = useState(prefillClub);
   const [email, setEmail]       = useState(userProfile?.email || '');
-  const [ccInput, setCcInput]   = useState('');
   const [emailsCc, setEmailsCc] = useState([]);
   const [loading, setLoading]   = useState(false);
   const [errors, setErrors]     = useState({});
@@ -89,7 +88,8 @@ export default function PerformanceForm({ userProfile, prefill, docId, onSubmitS
     prefill?.competitions?.length
       ? prefill.competitions.map(c => ({
           name: c.name || '', place: c.place || '', country: c.country || '',
-          date: c.date || '', site: c.site || '', type: c.type || 'outdoor',
+          dates: c.dates?.length ? c.dates : [c.date || ''],
+          site: c.site || '', type: c.type || 'outdoor',
           athletes: (c.athletes || []).map(a => ({
             firstName: a.firstName || '', lastName: a.lastName || '',
             licenceNumber: a.licenceNumber || '', bib: a.bib || '',
@@ -107,13 +107,6 @@ export default function PerformanceForm({ userProfile, prefill, docId, onSubmitS
   const getError = k => errors[k] || '';
   const isValidEmail = v => /\S+@\S+\.\S+/.test(v);
 
-  const addCcEmail = () => {
-    if (!ccInput) return;
-    if (isValidEmail(ccInput)) {
-      if (!emailsCc.includes(ccInput)) setEmailsCc([...emailsCc, ccInput]);
-      setCcInput('');
-    } else alert('Adresse email invalide !');
-  };
 
   const updComp = (ci, f, v) => setCompetitions(u => {
     const x = [...u]; x[ci] = { ...x[ci], [f]: v }; return x;
@@ -135,6 +128,9 @@ export default function PerformanceForm({ userProfile, prefill, docId, onSubmitS
   const removeAthlete = (ci,ai) => setCompetitions(u => { const x=[...u]; x[ci].athletes=x[ci].athletes.filter((_,i)=>i!==ai); return x; });
   const addPerf       = (ci,ai) => setCompetitions(u => { const x=[...u]; x[ci].athletes[ai].performances=[...x[ci].athletes[ai].performances,blankPerf()]; return x; });
   const removePerf    = (ci,ai,pi) => setCompetitions(u => { const x=[...u]; const next=x[ci].athletes[ai].performances.filter((_,i)=>i!==pi); x[ci].athletes[ai].performances=next.length?next:[blankPerf()]; return x; });
+  const addDate    = ci        => setCompetitions(u => { const x=[...u]; x[ci].dates=[...x[ci].dates,'']; return x; });
+  const removeDate = (ci, di)  => setCompetitions(u => { const x=[...u]; const next=x[ci].dates.filter((_,i)=>i!==di); x[ci].dates=next.length?next:[''];return x; });
+  const updDate    = (ci,di,v) => setCompetitions(u => { const x=[...u]; x[ci].dates=x[ci].dates.map((d,i)=>i===di?v:d); return x; });
   const addCompetition    = () => setCompetitions(u => [...u, blankComp()]);
   const removeCompetition = ci => setCompetitions(u => u.filter((_,i) => i!==ci));
 
@@ -148,7 +144,7 @@ export default function PerformanceForm({ userProfile, prefill, docId, onSubmitS
       if (!c.name?.trim())    next[b('name')]    = req;
       if (!c.place?.trim())   next[b('place')]   = req;
       if (!c.country?.trim()) next[b('country')] = req;
-      if (!c.date)            next[b('date')]    = req;
+      if (!c.dates?.[0])      next[b('date')]    = req;
       if (!c.site?.trim())    next[b('site')]    = req;
       c.athletes.forEach((a, j) => {
         const ab = k => `comp[${i}].ath[${j}].${k}`;
@@ -177,7 +173,7 @@ export default function PerformanceForm({ userProfile, prefill, docId, onSubmitS
 
     const competitionsPayload = competitions.map(comp => ({
       name: comp.name, place: comp.place, country: comp.country,
-      date: comp.date, site: comp.site, type: comp.type,
+      dates: comp.dates, date: comp.dates[0] || '', site: comp.site, type: comp.type,
       athletes: comp.athletes.map(a => ({
         firstName: a.firstName, lastName: a.lastName,
         licenceNumber: a.licenceNumber || '', bib: a.bib || '',
@@ -216,14 +212,16 @@ export default function PerformanceForm({ userProfile, prefill, docId, onSubmitS
         });
       }
 
-      await fetch('https://sendperformanceemail-t2aq3fohza-uc.a.run.app', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      }).catch(err => console.warn('Email failed:', err));
+      if (process.env.NODE_ENV !== 'development') {
+        await fetch('https://sendperformanceemail-t2aq3fohza-uc.a.run.app', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        }).catch(err => console.warn('Email failed:', err));
+      }
 
       if (onSubmitSuccess) onSubmitSuccess();
       if (!docId) {
-        setClub(prefillClub); setEmail(''); setCcInput(''); setEmailsCc([]);
+        setClub(prefillClub); setEmail(''); setEmailsCc([]);
         setCompetitions([blankComp()]); setErrors({});
       }
     } catch (err) {
@@ -261,34 +259,33 @@ export default function PerformanceForm({ userProfile, prefill, docId, onSubmitS
                 {hasError('club') && <FormHelperText>{getError('club')}</FormHelperText>}
               </FormControl>
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12} sm={5} md={4}>
               <TextField fullWidth required size="small" label="E-mail" value={email}
                 onChange={e => setEmail(e.target.value)}
                 error={hasError('email')} helperText={getError('email')} />
             </Grid>
-            <Grid item xs={12} sm={8}>
-              <TextField fullWidth size="small" label="Email en copie (CC)" value={ccInput}
-                onChange={e => setCcInput(e.target.value)}
-                placeholder="Tapez un email puis appuyez sur Entrée ou quittez le champ"
-                onBlur={() => { if (ccInput.trim()) addCcEmail(); }}
-                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addCcEmail(); } }} />
+            <Grid item xs={12} sm={7} md={8}>
+              <Autocomplete
+                multiple freeSolo fullWidth
+                options={[]}
+                value={emailsCc}
+                onChange={(_, newValue) => {
+                  const last = newValue[newValue.length - 1];
+                  if (last && !isValidEmail(last.trim())) return;
+                  setEmailsCc(newValue.map(v => v.trim()).filter(Boolean));
+                }}
+                renderTags={(value, getTagProps) =>
+                  value.map((option, index) => (
+                    <Chip key={index} label={option} size="small" variant="outlined"
+                      sx={{ fontSize: '0.78rem' }} {...getTagProps({ index })} />
+                  ))
+                }
+                renderInput={params => (
+                  <TextField {...params} fullWidth size="small" label="Emails en copie (CC)"
+                    placeholder={emailsCc.length === 0 ? 'Tapez un email et appuyez sur Entrée…' : ''} />
+                )}
+              />
             </Grid>
-            <Grid item xs={12} sm={4}>
-              <Button fullWidth variant="outlined" size="small" startIcon={<AddIcon />}
-                onClick={addCcEmail} sx={{ height: 40, mt: '8px' }}>
-                Ajouter CC
-              </Button>
-            </Grid>
-            {emailsCc.length > 0 && (
-              <Grid item xs={12}>
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
-                  {emailsCc.map((m, i) => (
-                    <Chip key={i} label={m} size="small"
-                      onDelete={() => setEmailsCc(emailsCc.filter((_, j) => j !== i))} />
-                  ))}
-                </Box>
-              </Grid>
-            )}
           </Grid>
         </Box>
       </Paper>
@@ -319,11 +316,36 @@ export default function PerformanceForm({ userProfile, prefill, docId, onSubmitS
                   onChange={e => updComp(ci, 'country', e.target.value)}
                   error={hasError(`comp[${ci}].country`)} helperText={getError(`comp[${ci}].country`)} />
               </Grid>
-              <Grid item xs={6} sm={2}>
-                <TextField fullWidth required size="small" type="date" label="Date"
-                  InputLabelProps={{ shrink: true }} value={comp.date}
-                  onChange={e => updComp(ci, 'date', e.target.value)}
-                  error={hasError(`comp[${ci}].date`)} helperText={getError(`comp[${ci}].date`)} />
+              <Grid item xs={12} sm={5}>
+                <Box>
+                  <Typography variant="caption" fontWeight={600} color="text.secondary"
+                    sx={{ display: 'block', mb: 0.5, textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '0.68rem' }}>
+                    Dates *
+                  </Typography>
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, alignItems: 'center' }}>
+                    {comp.dates.map((d, di) => (
+                      <Box key={di} sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
+                        <TextField type="date" size="small"
+                          label={comp.dates.length > 1 ? `Jour ${di + 1}` : 'Date'}
+                          InputLabelProps={{ shrink: true }}
+                          value={d} onChange={e => updDate(ci, di, e.target.value)}
+                          error={di === 0 && hasError(`comp[${ci}].date`)}
+                          helperText={di === 0 ? getError(`comp[${ci}].date`) : ''}
+                          sx={{ width: 165 }} />
+                        {comp.dates.length > 1 && (
+                          <IconButton size="small" onClick={() => removeDate(ci, di)}
+                            sx={{ color: 'error.light' }}>
+                            <DeleteOutlineIcon fontSize="small" />
+                          </IconButton>
+                        )}
+                      </Box>
+                    ))}
+                    <Button type="button" variant="outlined" size="small" startIcon={<AddIcon />}
+                      onClick={e => { e.preventDefault(); addDate(ci); }} sx={{ height: 40, whiteSpace: 'nowrap' }}>
+                      Jour
+                    </Button>
+                  </Box>
+                </Box>
               </Grid>
               <Grid item xs={6} sm={2}>
                 <FormControl fullWidth required size="small">
@@ -391,14 +413,16 @@ export default function PerformanceForm({ userProfile, prefill, docId, onSubmitS
                             getOptionLabel={a => a ? `${a.firstName} ${a.lastName}` : ''}
                             isOptionEqualToValue={(a, b) => a.licenceNumber === b.licenceNumber}
                             filterOptions={(opts, { inputValue }) => {
-                              const q = inputValue.toLowerCase();
+                              const q = inputValue.trim().toLowerCase();
+                              if (q.length < 2) return [];
                               return opts.filter(a =>
-                                a.firstName.toLowerCase().includes(q) ||
-                                a.lastName.toLowerCase().includes(q) ||
-                                String(a.bib || '').includes(q) ||
-                                (a.licenceNumber || '').includes(q)
-                              ).slice(0, 50);
+                                `${a.firstName} ${a.lastName}`.toLowerCase().includes(q) ||
+                                a.lastName.toLowerCase().startsWith(q) ||
+                                a.firstName.toLowerCase().startsWith(q) ||
+                                String(a.bib || '').includes(q)
+                              ).slice(0, 30);
                             }}
+                            noOptionsText="Tapez au moins 2 lettres pour chercher…"
                             renderOption={(props, a) => (
                               <Box component="li" {...props} key={a.licenceNumber}>
                                 <Box>
@@ -511,76 +535,77 @@ export default function PerformanceForm({ userProfile, prefill, docId, onSubmitS
                                     <DeleteOutlineIcon fontSize="small" />
                                   </IconButton>
                                 </Box>
-                                <Grid container spacing={1.5}>
-                                  <Grid item xs={12}>
-                                    <Autocomplete freeSolo fullWidth
-                                      options={epreuves.map(e => e.discipline)}
-                                      value={perf.event ?? ''}
-                                      onChange={(_, v) => updPerf(ci, ai, pi, 'event', v)}
-                                      onInputChange={(_, v) => updPerf(ci, ai, pi, 'event', v)}
-                                      ListboxProps={{ sx: { maxHeight: 400 } }}
-                                      renderInput={params => (
-                                        <TextField {...params} size="small" label="Épreuve" required fullWidth
-                                          error={hasError(`comp[${ci}].ath[${ai}].perf[${pi}].event`)}
-                                          helperText={getError(`comp[${ci}].ath[${ai}].perf[${pi}].event`)} />
-                                      )} />
-                                  </Grid>
-                                  {/* No-result toggle */}
-                                  <Grid item xs={12}>
-                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap' }}>
-                                      <Typography variant="caption" color="text.secondary">Sans résultat :</Typography>
-                                      {NO_RESULT_CODES.map(code => (
-                                        <Chip
-                                          key={code} label={code} size="small" clickable
-                                          color={perf.noResult === code ? 'error' : 'default'}
-                                          variant={perf.noResult === code ? 'filled' : 'outlined'}
-                                          onClick={() => updPerf(ci, ai, pi, 'noResult', perf.noResult === code ? '' : code)}
-                                          sx={{ fontSize: '0.72rem', height: 22 }}
-                                        />
-                                      ))}
-                                    </Box>
-                                  </Grid>
+                                {/* Row 1: Épreuve + Performance side by side */}
+                              <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'flex-start', mb: 1.25 }}>
+                                <Box sx={{ flex: 1, minWidth: 0 }}>
+                                  <Autocomplete freeSolo fullWidth
+                                    options={epreuves.map(e => e.discipline)}
+                                    value={perf.event ?? ''}
+                                    onChange={(_, v) => updPerf(ci, ai, pi, 'event', v)}
+                                    onInputChange={(_, v) => updPerf(ci, ai, pi, 'event', v)}
+                                    ListboxProps={{ sx: { maxHeight: 400 } }}
+                                    renderInput={params => (
+                                      <TextField {...params} size="small" label="Épreuve" required fullWidth
+                                        error={hasError(`comp[${ci}].ath[${ai}].perf[${pi}].event`)}
+                                        helperText={getError(`comp[${ci}].ath[${ai}].perf[${pi}].event`)} />
+                                    )} />
+                                </Box>
+                                <Box sx={{ width: 190, flexShrink: 0 }}>
+                                  <TextField fullWidth required={!perf.noResult} size="small" label="Performance"
+                                    value={perf.noResult ? perf.noResult : perf.result}
+                                    disabled={Boolean(perf.noResult)}
+                                    onChange={e => updPerf(ci, ai, pi, 'result', e.target.value)}
+                                    error={hasError(`comp[${ci}].ath[${ai}].perf[${pi}].result`)}
+                                    helperText={getError(`comp[${ci}].ath[${ai}].perf[${pi}].result`)}
+                                    sx={{ '& .MuiInputBase-input.Mui-disabled': { WebkitTextFillColor: perf.noResult ? '#EF4444' : undefined, fontWeight: perf.noResult ? 700 : undefined } }}
+                                  />
+                                </Box>
+                              </Box>
 
-                                  <Grid item xs={6} sm={4}>
-                                    <TextField fullWidth required={!perf.noResult} size="small" label="Performance"
-                                      value={perf.noResult ? perf.noResult : perf.result}
-                                      disabled={Boolean(perf.noResult)}
-                                      onChange={e => updPerf(ci, ai, pi, 'result', e.target.value)}
-                                      error={hasError(`comp[${ci}].ath[${ai}].perf[${pi}].result`)}
-                                      helperText={getError(`comp[${ci}].ath[${ai}].perf[${pi}].result`)}
-                                      sx={{ '& .MuiInputBase-input.Mui-disabled': { WebkitTextFillColor: perf.noResult ? '#EF4444' : undefined, fontWeight: perf.noResult ? 700 : undefined } }}
+                              {/* Row 2: No-result + Vent + Classement */}
+                              <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center', flexWrap: 'wrap' }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap', flex: 1 }}>
+                                  <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>Sans résultat :</Typography>
+                                  {NO_RESULT_CODES.map(code => (
+                                    <Chip
+                                      key={code} label={code} size="small" clickable
+                                      color={perf.noResult === code ? 'error' : 'default'}
+                                      variant={perf.noResult === code ? 'filled' : 'outlined'}
+                                      onClick={() => updPerf(ci, ai, pi, 'noResult', perf.noResult === code ? '' : code)}
+                                      sx={{ fontSize: '0.72rem', height: 22 }}
                                     />
-                                  </Grid>
-                                  <Grid item xs={6} sm={4}>
-                                    {showWind ? (
-                                      <TextField fullWidth required={windReq} size="small" label="Vent" value={perf.wind}
-                                        onChange={e => updPerf(ci, ai, pi, 'wind', e.target.value)}
-                                        error={hasError(`comp[${ci}].ath[${ai}].perf[${pi}].wind`)}
-                                        helperText={getError(`comp[${ci}].ath[${ai}].perf[${pi}].wind`) || 'NA si pas de mesure'}
-                                        InputProps={{
-                                          endAdornment: (
-                                            <InputAdornment position="end">
-                                              <Tooltip arrow title="NA si pas de mesure du vent">
-                                                <InfoOutlinedIcon fontSize="small" sx={{ color: 'text.secondary' }} />
-                                              </Tooltip>
-                                            </InputAdornment>
-                                          ),
-                                        }} />
-                                    ) : (
-                                      <TextField fullWidth size="small" label="Vent" value="/" disabled />
-                                    )}
-                                  </Grid>
-                                  <Grid item xs={12} sm={4}>
-                                    <TextField fullWidth size="small" label="Classement" value={perf.rank}
-                                      onChange={e => updPerf(ci, ai, pi, 'rank', e.target.value)} />
-                                  </Grid>
-                                </Grid>
+                                  ))}
+                                </Box>
+                                <Box sx={{ width: 130, flexShrink: 0 }}>
+                                  {showWind ? (
+                                    <TextField fullWidth required={windReq} size="small" label="Vent" value={perf.wind}
+                                      onChange={e => updPerf(ci, ai, pi, 'wind', e.target.value)}
+                                      error={hasError(`comp[${ci}].ath[${ai}].perf[${pi}].wind`)}
+                                      helperText={getError(`comp[${ci}].ath[${ai}].perf[${pi}].wind`) || 'NA si pas mesure'}
+                                      InputProps={{
+                                        endAdornment: (
+                                          <InputAdornment position="end">
+                                            <Tooltip arrow title="NA si pas de mesure du vent">
+                                              <InfoOutlinedIcon fontSize="small" sx={{ color: 'text.secondary' }} />
+                                            </Tooltip>
+                                          </InputAdornment>
+                                        ),
+                                      }} />
+                                  ) : (
+                                    <TextField fullWidth size="small" label="Vent" value="/" disabled />
+                                  )}
+                                </Box>
+                                <Box sx={{ width: 160, flexShrink: 0 }}>
+                                  <TextField fullWidth size="small" label="Classement" value={perf.rank}
+                                    onChange={e => updPerf(ci, ai, pi, 'rank', e.target.value)} />
+                                </Box>
+                              </Box>
                               </Box>
                             );
                           })}
                         </Box>
-                        <Button variant="outlined" size="small" startIcon={<AddIcon />}
-                          onClick={() => addPerf(ci, ai)} sx={{ mt: 1 }}>
+                        <Button type="button" variant="outlined" size="small" startIcon={<AddIcon />}
+                          onClick={e => { e.preventDefault(); addPerf(ci, ai); }} sx={{ mt: 1 }}>
                           + Épreuve
                         </Button>
                       </Box>
@@ -588,8 +613,8 @@ export default function PerformanceForm({ userProfile, prefill, docId, onSubmitS
                   </Paper>
                 ))}
               </Box>
-              <Button variant="outlined" size="small" startIcon={<PersonAddIcon />}
-                onClick={() => addAthlete(ci)} sx={{ mt: 1.5 }}>
+              <Button type="button" variant="outlined" size="small" startIcon={<PersonAddIcon />}
+                onClick={e => { e.preventDefault(); addAthlete(ci); }} sx={{ mt: 1.5 }}>
                 + Athlète
               </Button>
             </Box>
