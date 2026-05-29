@@ -220,6 +220,8 @@ export default function AutorisationPage({ userProfile }) {
         ]);
         const seen = new Set();
         docs = sortByDate([...s1.docs, ...s2.docs].filter(d => seen.has(d.id) ? false : seen.add(d.id)));
+      } else if (role === 'shared_account') {
+        docs = []; // shared accounts submit but cannot view history
       } else {
         const snap = await getDocs(query(collection(db, 'authorisationRequests'), where('createdBy', '==', uid)));
         docs = sortByDate(snap.docs);
@@ -235,6 +237,8 @@ export default function AutorisationPage({ userProfile }) {
     ? 'Toutes les demandes'
     : role === 'club'
     ? `Club : ${userProfile?.club}`
+    : role === 'shared_account'
+    ? 'Compte partagé'
     : 'Mes demandes';
 
   return (
@@ -270,14 +274,28 @@ export default function AutorisationPage({ userProfile }) {
           <CircularProgress />
         </Box>
       ) : requests.length === 0 ? (
-        <Paper sx={{ py: 8, textAlign: 'center', borderRadius: 3 }}>
+        <Paper sx={{ py: 8, textAlign: 'center', borderRadius: 3, px: 3 }}>
           <AssignmentOutlinedIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 1.5 }} />
-          <Typography variant="body1" color="text.secondary" fontWeight={500}>
-            Aucune demande pour le moment
-          </Typography>
-          <Typography variant="body2" color="text.disabled" sx={{ mt: 0.5 }}>
-            Cliquez sur « Nouvelle demande » pour commencer.
-          </Typography>
+          {role === 'shared_account' ? (
+            <>
+              <Typography variant="body1" color="text.secondary" fontWeight={500}>
+                Historique non disponible pour ce compte
+              </Typography>
+              <Typography variant="body2" color="text.disabled" sx={{ mt: 0.5, maxWidth: 440, mx: 'auto' }}>
+                Ce compte partagé peut soumettre des demandes, mais ne peut pas consulter l'historique.
+                Le club sélectionné lors de chaque demande peut voir toutes les soumissions.
+              </Typography>
+            </>
+          ) : (
+            <>
+              <Typography variant="body1" color="text.secondary" fontWeight={500}>
+                Aucune demande pour le moment
+              </Typography>
+              <Typography variant="body2" color="text.disabled" sx={{ mt: 0.5 }}>
+                Cliquez sur « Nouvelle demande » pour commencer.
+              </Typography>
+            </>
+          )}
         </Paper>
       ) : (
         <TableContainer component={Paper} sx={{ borderRadius: 3, overflowX: 'auto' }}>

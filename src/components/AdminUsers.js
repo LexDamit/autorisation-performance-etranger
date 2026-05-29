@@ -12,6 +12,7 @@ import { auth, db } from '../firebase';
 
 const ROLES = [
   { value: 'athlete',          label: 'Athlète',           bg: '#EEF2FF', color: '#3730A3' },
+  { value: 'shared_account',   label: 'Compte partagé',    bg: '#FFF7ED', color: '#C2410C' },
   { value: 'club',             label: 'Club',              bg: '#F0FDF4', color: '#166534' },
   { value: 'federation_staff', label: 'Staff Fédération',  bg: '#FFF7ED', color: '#9A3412' },
   { value: 'admin',            label: 'Administrateur',    bg: '#FDF2F8', color: '#86198F' },

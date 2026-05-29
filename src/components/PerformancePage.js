@@ -206,6 +206,8 @@ export default function PerformancePage({ userProfile }) {
         ]);
         const seen = new Set();
         docs = sortByDate([...s1.docs, ...s2.docs].filter(d => seen.has(d.id) ? false : seen.add(d.id)));
+      } else if (role === 'shared_account') {
+        docs = []; // shared accounts submit but cannot view history
       } else {
         const snap = await getDocs(query(collection(db, 'performanceDeclarations'), where('createdBy', '==', uid)));
         docs = sortByDate(snap.docs);
@@ -228,6 +230,8 @@ export default function PerformancePage({ userProfile }) {
     ? 'Toutes les performances soumises'
     : role === 'club'
     ? `Club : ${userProfile?.club}`
+    : role === 'shared_account'
+    ? 'Compte partagé'
     : 'Mes performances';
 
   const handleComplete = (decl) => {
@@ -405,14 +409,28 @@ export default function PerformancePage({ userProfile }) {
 
           {/* Empty state when there's nothing at all */}
           {toCompletePerfs.length === 0 && submittedRows.length === 0 && (
-            <Paper sx={{ py: 8, textAlign: 'center', borderRadius: 3, mt: 2 }}>
+            <Paper sx={{ py: 8, textAlign: 'center', borderRadius: 3, mt: 2, px: 3 }}>
               <SpeedOutlinedIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 1.5 }} />
-              <Typography variant="body1" color="text.secondary" fontWeight={500}>
-                Aucune performance enregistrée
-              </Typography>
-              <Typography variant="body2" color="text.disabled" sx={{ mt: 0.5 }}>
-                Cliquez sur « Nouvelle fiche » pour soumettre vos résultats.
-              </Typography>
+              {role === 'shared_account' ? (
+                <>
+                  <Typography variant="body1" color="text.secondary" fontWeight={500}>
+                    Historique non disponible pour ce compte
+                  </Typography>
+                  <Typography variant="body2" color="text.disabled" sx={{ mt: 0.5, maxWidth: 440, mx: 'auto' }}>
+                    Ce compte partagé peut soumettre des fiches de performance, mais ne peut pas consulter l'historique.
+                    Le club sélectionné lors de chaque soumission peut voir toutes les performances.
+                  </Typography>
+                </>
+              ) : (
+                <>
+                  <Typography variant="body1" color="text.secondary" fontWeight={500}>
+                    Aucune performance enregistrée
+                  </Typography>
+                  <Typography variant="body2" color="text.disabled" sx={{ mt: 0.5 }}>
+                    Cliquez sur « Nouvelle fiche » pour soumettre vos résultats.
+                  </Typography>
+                </>
+              )}
             </Paper>
           )}
         </>
