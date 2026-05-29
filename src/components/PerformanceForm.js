@@ -466,36 +466,47 @@ export default function PerformanceForm({ userProfile, prefill, docId, onSubmitS
                             getOptionLabel={a => a ? `${a.firstName} ${a.lastName}` : ''}
                             isOptionEqualToValue={(a, b) => a.licenceNumber === b.licenceNumber}
                             filterOptions={(opts, { inputValue }) => {
-                              const q = inputValue.trim().toLowerCase();
+                              const q = inputValue.trim();
+                              if (!q) return [];
+                              // Pure digits → search by bib (1 digit minimum)
+                              if (/^\d+$/.test(q)) {
+                                return opts.filter(a => String(a.bib || '').startsWith(q)).slice(0, 20);
+                              }
+                              // Text → search by name (2 chars minimum)
                               if (q.length < 2) return [];
+                              const ql = q.toLowerCase();
                               return opts.filter(a =>
-                                `${a.firstName} ${a.lastName}`.toLowerCase().includes(q) ||
-                                a.lastName.toLowerCase().startsWith(q) ||
-                                a.firstName.toLowerCase().startsWith(q) ||
-                                String(a.bib || '').includes(q)
+                                `${a.firstName} ${a.lastName}`.toLowerCase().includes(ql) ||
+                                a.lastName.toLowerCase().startsWith(ql) ||
+                                a.firstName.toLowerCase().startsWith(ql)
                               ).slice(0, 30);
                             }}
-                            noOptionsText="Tapez au moins 2 lettres pour chercher…"
+                            noOptionsText="Aucun résultat — tapez un n° dossard ou 2+ lettres du nom"
                             renderOption={(props, a) => (
                               <Box component="li" {...props} key={a.licenceNumber}>
-                                <Box>
-                                  <Typography variant="body2" fontWeight={500}>
-                                    {a.firstName} {a.lastName}
+                                <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1.25 }}>
+                                  <Typography variant="caption" sx={{ fontWeight: 700, color: '#3730A3', minWidth: 36 }}>
+                                    #{a.bib}
                                   </Typography>
-                                  <Typography variant="caption" color="text.secondary">
-                                    Dossard #{a.bib} · {a.category} · {a.club}
-                                  </Typography>
+                                  <Box>
+                                    <Typography variant="body2" fontWeight={500}>
+                                      {a.firstName} {a.lastName}
+                                    </Typography>
+                                    <Typography variant="caption" color="text.secondary">
+                                      {a.category} · {a.club}
+                                    </Typography>
+                                  </Box>
                                 </Box>
                               </Box>
                             )}
                             renderInput={params => (
-                              <TextField {...params} size="small" label="Dossard"
-                                placeholder="Rechercher par nom…"
+                              <TextField {...params} size="small" label="Dossard / Athlète"
+                                placeholder="N° ou nom…"
                                 InputProps={{
                                   ...params.InputProps,
                                   startAdornment: (
                                     <>
-                                      <Tooltip title="Vous pouvez rechercher le dossard par nom dans cette case" placement="top">
+                                      <Tooltip title="Tapez le numéro de dossard directement, ou recherchez par nom (2+ lettres)" placement="top">
                                         <InfoOutlinedIcon sx={{ fontSize: 15, color: '#94A3B8', mr: 0.5, cursor: 'help', flexShrink: 0 }} />
                                       </Tooltip>
                                       {params.InputProps.startAdornment}
