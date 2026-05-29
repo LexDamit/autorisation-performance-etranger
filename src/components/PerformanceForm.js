@@ -432,22 +432,21 @@ export default function PerformanceForm({ userProfile, prefill, docId, onSubmitS
                     />
                     <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
 
-                      {/* ── Row 1 : Prénom · Nom · Dossard ── */}
-                      <Grid container spacing={1.5} alignItems="flex-start">
-                        <Grid item xs={6} sm={4}>
-                          <TextField fullWidth required size="small" label="Prénom"
-                            value={ath.firstName} onChange={e => updAth(ci, ai, { firstName: e.target.value })}
-                            error={hasError(`comp[${ci}].ath[${ai}].firstName`)}
-                            helperText={getError(`comp[${ci}].ath[${ai}].firstName`)} />
-                        </Grid>
-                        <Grid item xs={6} sm={4}>
-                          <TextField fullWidth required size="small" label="Nom"
-                            value={ath.lastName} onChange={e => updAth(ci, ai, { lastName: e.target.value })}
-                            error={hasError(`comp[${ci}].ath[${ai}].lastName`)}
-                            helperText={getError(`comp[${ci}].ath[${ai}].lastName`)} />
-                        </Grid>
-                        <Grid item xs={12} sm={4}>
+                      {/* ── Row 1 : Prénom · Nom · Dossard — flex to avoid overflow:hidden width bug ── */}
+                      <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+                        <TextField required size="small" label="Prénom"
+                          value={ath.firstName} onChange={e => updAth(ci, ai, { firstName: e.target.value })}
+                          error={hasError(`comp[${ci}].ath[${ai}].firstName`)}
+                          helperText={getError(`comp[${ci}].ath[${ai}].firstName`)}
+                          sx={{ flex: '1 1 150px' }} />
+                        <TextField required size="small" label="Nom"
+                          value={ath.lastName} onChange={e => updAth(ci, ai, { lastName: e.target.value })}
+                          error={hasError(`comp[${ci}].ath[${ai}].lastName`)}
+                          helperText={getError(`comp[${ci}].ath[${ai}].lastName`)}
+                          sx={{ flex: '1 1 150px' }} />
+                        <Box sx={{ flex: '1 1 200px' }}>
                           <Autocomplete
+                            fullWidth
                             options={flaOptions()}
                             value={ath._flaAthlete || null}
                             onChange={(_, val) => {
@@ -468,25 +467,21 @@ export default function PerformanceForm({ userProfile, prefill, docId, onSubmitS
                             filterOptions={(opts, { inputValue }) => {
                               const q = inputValue.trim();
                               if (!q) return [];
-                              // Pure digits → search by bib (1 digit minimum)
                               if (/^\d+$/.test(q)) {
                                 return opts.filter(a => String(a.bib || '').startsWith(q)).slice(0, 20);
                               }
-                              // Text → search by name (2 chars minimum)
                               if (q.length < 2) return [];
-                              const ql = q.toLowerCase();
-                              return opts.filter(a =>
-                                `${a.firstName} ${a.lastName}`.toLowerCase().includes(ql) ||
-                                a.lastName.toLowerCase().startsWith(ql) ||
-                                a.firstName.toLowerCase().startsWith(ql)
-                              ).slice(0, 30);
+                              const norm = s => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+                              const ql = norm(q);
+                              return opts.filter(a => norm(`${a.firstName} ${a.lastName}`).includes(ql)).slice(0, 40);
                             }}
                             noOptionsText="Aucun résultat — tapez un n° dossard ou 2+ lettres du nom"
+                            componentsProps={{ popper: { style: { minWidth: 360 } } }}
                             renderOption={(props, a) => (
                               <Box component="li" {...props} key={a.licenceNumber}>
-                                <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1.25 }}>
-                                  <Typography variant="caption" sx={{ fontWeight: 700, color: '#3730A3', minWidth: 36 }}>
-                                    #{a.bib}
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
+                                  <Typography variant="caption" sx={{ fontWeight: 700, color: a.bib ? '#3730A3' : '#CBD5E1', width: 42, flexShrink: 0 }}>
+                                    {a.bib ? `#${a.bib}` : '—'}
                                   </Typography>
                                   <Box>
                                     <Typography variant="body2" fontWeight={500}>
@@ -516,8 +511,8 @@ export default function PerformanceForm({ userProfile, prefill, docId, onSubmitS
                               />
                             )}
                           />
-                        </Grid>
-                      </Grid>
+                        </Box>
+                      </Box>
 
                       {/* ── Row 2 : Catégorie · Sexe inline ── */}
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
