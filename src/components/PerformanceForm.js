@@ -508,42 +508,38 @@ export default function PerformanceForm({ userProfile, prefill, docId, onSubmitS
                         </Grid>
                       </Grid>
 
-                      {/* ── Row 2 : Catégorie · Sexe ── */}
-                      <Grid container spacing={1.5} alignItems="flex-start">
-                        <Grid item xs={6} sm={5}>
-                          <FormControl fullWidth required size="small"
-                            sx={{ minWidth: 150 }}
-                            error={hasError(`comp[${ci}].ath[${ai}].category`)}>
-                            <InputLabel>Catégorie</InputLabel>
-                            <Select value={ath.category} label="Catégorie"
-                              onChange={e => updAth(ci, ai, { category: e.target.value })}>
-                              {categories.map(c => <MenuItem key={c} value={c}>{c}</MenuItem>)}
-                            </Select>
-                            <FormHelperText>{getError(`comp[${ci}].ath[${ai}].category`)}</FormHelperText>
-                          </FormControl>
-                        </Grid>
-                        <Grid item xs={6} sm={7}>
+                      {/* ── Row 2 : Catégorie · Sexe inline ── */}
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+                        <FormControl required size="small"
+                          sx={{ flex: '1 1 auto', minWidth: 220, maxWidth: 380 }}
+                          error={hasError(`comp[${ci}].ath[${ai}].category`)}>
+                          <InputLabel>Catégorie</InputLabel>
+                          <Select value={ath.category} label="Catégorie"
+                            onChange={e => updAth(ci, ai, { category: e.target.value })}>
+                            {categories.map(c => <MenuItem key={c} value={c}>{c}</MenuItem>)}
+                          </Select>
+                          <FormHelperText>{getError(`comp[${ci}].ath[${ai}].category`)}</FormHelperText>
+                        </FormControl>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }}>
                           <Typography variant="caption"
-                            sx={{ display: 'block', mb: 0.75, fontSize: '0.78rem',
+                            sx={{ fontSize: '0.82rem',
                               color: hasError(`comp[${ci}].ath[${ai}].sex`) ? 'error.main' : 'text.secondary' }}>
                             Sexe *
                           </Typography>
-                          <Box sx={{ display: 'flex', gap: 1 }}>
-                            {['F', 'M'].map(s => (
-                              <Button key={s} type="button" size="small"
-                                variant={ath.sex === s ? 'contained' : 'outlined'}
-                                color={hasError(`comp[${ci}].ath[${ai}].sex`) ? 'error' : 'primary'}
-                                onClick={() => updAth(ci, ai, { sex: s })}
-                                sx={{ minWidth: 52 }}>
-                                {s}
-                              </Button>
-                            ))}
-                          </Box>
+                          {['F', 'M'].map(s => (
+                            <Button key={s} type="button" size="small"
+                              variant={ath.sex === s ? 'contained' : 'outlined'}
+                              color={hasError(`comp[${ci}].ath[${ai}].sex`) ? 'error' : 'primary'}
+                              onClick={() => updAth(ci, ai, { sex: s })}
+                              sx={{ minWidth: 44 }}>
+                              {s}
+                            </Button>
+                          ))}
                           {hasError(`comp[${ci}].ath[${ai}].sex`) && (
                             <FormHelperText error sx={{ ml: 0 }}>Sexe obligatoire</FormHelperText>
                           )}
-                        </Grid>
-                      </Grid>
+                        </Box>
+                      </Box>
 
                       {/* Dossard badge when FLA linked */}
                       {ath._flaAthlete && (

@@ -195,41 +195,37 @@ function AthleteBlock({ ath, ci, ai, club, onUpdate, onRemove, removeDisabled, e
           </Grid>
         </Grid>
 
-        {/* ── Row 2 : Catégorie · Sexe ── */}
-        <Grid container spacing={1.5} alignItems="flex-start">
-          <Grid item xs={6} sm={5}>
-            <FormControl fullWidth required size="small"
-              error={Boolean(categoryErr)}
-              sx={{ minWidth: 150 }}>
-              <InputLabel>Catégorie</InputLabel>
-              <Select value={ath.category} label="Catégorie"
-                onChange={e => onUpdate({ category: e.target.value })}>
-                {categories.map(c => <MenuItem key={c} value={c}>{c}</MenuItem>)}
-              </Select>
-              {categoryErr && <FormHelperText>{categoryErr}</FormHelperText>}
-            </FormControl>
-          </Grid>
-          <Grid item xs={6} sm={7}>
+        {/* ── Row 2 : Catégorie · Sexe inline ── */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+          <FormControl required size="small"
+            error={Boolean(categoryErr)}
+            sx={{ flex: '1 1 auto', minWidth: 220, maxWidth: 380 }}>
+            <InputLabel>Catégorie</InputLabel>
+            <Select value={ath.category} label="Catégorie"
+              onChange={e => onUpdate({ category: e.target.value })}>
+              {categories.map(c => <MenuItem key={c} value={c}>{c}</MenuItem>)}
+            </Select>
+            {categoryErr && <FormHelperText>{categoryErr}</FormHelperText>}
+          </FormControl>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }}>
             <Typography variant="caption" sx={{
-              display: 'block', mb: 0.75, fontSize: '0.78rem',
+              fontSize: '0.82rem',
               color: sexErr ? 'error.main' : 'text.secondary',
             }}>
               Sexe *
             </Typography>
-            <Box sx={{ display: 'flex', gap: 1 }}>
-              {['F', 'M'].map(s => (
-                <Button key={s} type="button" size="small"
-                  variant={ath.sex === s ? 'contained' : 'outlined'}
-                  color={sexErr ? 'error' : 'primary'}
-                  onClick={() => onUpdate({ sex: s })}
-                  sx={{ minWidth: 52 }}>
-                  {s}
-                </Button>
-              ))}
-            </Box>
-            {sexErr && <FormHelperText error sx={{ ml: 0, mt: 0.5 }}>{sexErr}</FormHelperText>}
-          </Grid>
-        </Grid>
+            {['F', 'M'].map(s => (
+              <Button key={s} type="button" size="small"
+                variant={ath.sex === s ? 'contained' : 'outlined'}
+                color={sexErr ? 'error' : 'primary'}
+                onClick={() => onUpdate({ sex: s })}
+                sx={{ minWidth: 44 }}>
+                {s}
+              </Button>
+            ))}
+            {sexErr && <FormHelperText error sx={{ ml: 0 }}>Sexe obligatoire</FormHelperText>}
+          </Box>
+        </Box>
 
         {/* Dossard badge when FLA athlete linked */}
         {ath._flaAthlete && (
