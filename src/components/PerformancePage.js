@@ -85,9 +85,10 @@ function ToCompleteCard({ decl, onComplete }) {
 }
 
 // ── Row: one submitted performance (one competition per row) ─────────────────
-function PerfRow({ doc, comp, onUnlink }) {
+function PerfRow({ doc, comp, onUnlink, role }) {
   const submittedDate = doc.createdAt?.toDate().toLocaleDateString('fr-LU') || '—';
   const seltec        = doc.seltecStatus;
+  const isStaff       = role === 'federation_staff' || role === 'admin';
 
   return (
     <TableRow sx={{ verticalAlign: 'top' }}>
@@ -156,8 +157,10 @@ function PerfRow({ doc, comp, onUnlink }) {
       <TableCell sx={{ pt: 2, whiteSpace: 'nowrap' }}>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75, alignItems: 'flex-start' }}>
           <StatusChip status={doc.status} />
-          {seltec && <StatusChip status={seltec} />}
-          {doc.linkedAuthorisationId && (
+          {/* "En vérification" (orange) hidden from athletes/clubs — only show green/red results */}
+          {seltec && (isStaff || seltec !== 'orange') && <StatusChip status={seltec} />}
+          {/* Link chip + unlink button: staff only */}
+          {isStaff && doc.linkedAuthorisationId && (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
               <Chip label="Liée autorisat." variant="outlined" size="small"
                 sx={{ fontSize: '0.65rem', height: 20, borderColor: '#E2E8F0', color: 'text.secondary' }} />
@@ -391,6 +394,7 @@ export default function PerformancePage({ userProfile }) {
                         key={`${doc.id}-${i}`}
                         doc={doc} comp={comp}
                         onUnlink={setUnlinkDoc}
+                        role={role}
                       />
                     ))}
                   </TableBody>
