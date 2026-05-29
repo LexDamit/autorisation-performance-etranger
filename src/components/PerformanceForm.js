@@ -618,7 +618,7 @@ export default function PerformanceForm({ userProfile, prefill, docId, onSubmitS
 
                               {/* Row 2: Performance · Vent · Classement */}
                               <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start', mb: 1 }}>
-                                <Box sx={{ flex: 1, minWidth: 100 }}>
+                                <Box sx={{ width: 160, flexShrink: 0 }}>
                                   <TextField fullWidth required={!perf.noResult} size="small" label="Performance"
                                     value={perf.noResult ? perf.noResult : perf.result}
                                     disabled={Boolean(perf.noResult)}
