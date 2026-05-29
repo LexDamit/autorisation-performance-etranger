@@ -18,80 +18,68 @@ import { auth, db } from '../firebase';
 import PerformanceForm from './PerformanceForm';
 import StatusChip from './StatusChip';
 
+// ── helpers ───────────────────────────────────────────────────────────────────
+const fmtISO = iso => {
+  if (!iso) return null;
+  const [y, m, d] = iso.split('-');
+  return (d && m && y) ? `${d}/${m}/${y}` : iso;
+};
+const fmtDates = dates => {
+  const d = (dates || []).filter(Boolean).map(fmtISO).filter(Boolean);
+  return d.length ? d.join(', ') : null;
+};
+
 // ── Card: one to_complete declaration ────────────────────────────────────────
 function ToCompleteCard({ decl, onComplete }) {
   const compNames = (decl.competitions || []).map(c => c.name).filter(Boolean);
 
   return (
-    <Paper variant="outlined" sx={{ borderRadius: 2.5, overflow: 'hidden', border: '1px solid #FDE68A' }}>
+    <Paper variant="outlined" sx={{ borderRadius: 2, overflow: 'hidden', border: '1px solid #FDE68A' }}>
       {/* Card header */}
       <Box sx={{
-        px: 2.5, py: 1.25, bgcolor: '#FFFBEB', borderBottom: '1px solid #FDE68A',
+        px: 2, py: 0.9, bgcolor: '#FFFBEB', borderBottom: '1px solid #FDE68A',
         display: 'flex', alignItems: 'center', gap: 1,
       }}>
-        <EmojiEventsIcon sx={{ fontSize: 15, color: '#D97706', flexShrink: 0 }} />
-        <Typography variant="subtitle2" fontWeight={700} sx={{ color: '#92400E', flex: 1 }}>
+        <EmojiEventsIcon sx={{ fontSize: 14, color: '#D97706', flexShrink: 0 }} />
+        <Typography variant="subtitle2" fontWeight={700} sx={{ color: '#92400E', flex: 1, fontSize: '0.85rem' }}>
           {compNames.join(' · ') || '—'}
         </Typography>
+        <Button variant="contained" size="small"
+          startIcon={<EditNoteIcon sx={{ fontSize: 14 }} />}
+          onClick={() => onComplete(decl)}
+          sx={{ bgcolor: '#D97706', '&:hover': { bgcolor: '#B45309' }, boxShadow: 'none', fontSize: '0.75rem', py: 0.4, px: 1.25, flexShrink: 0 }}>
+          Compléter
+        </Button>
       </Box>
 
-      {/* One block per competition */}
+      {/* One row per competition */}
       {(decl.competitions || []).map((comp, ci) => (
         <Box key={ci} sx={{
-          px: 2.5, py: 1.5, bgcolor: 'white',
+          px: 2, py: 0.9,
           borderBottom: ci < decl.competitions.length - 1 ? '1px dashed #FDE68A' : 'none',
+          display: 'flex', alignItems: 'baseline', gap: 1.5, flexWrap: 'wrap',
         }}>
-          {/* Date + Lieu + Pays row */}
-          <Box sx={{ display: 'flex', gap: 4, mb: 1, flexWrap: 'wrap' }}>
-            {[
-              { label: 'Date(s)',  value: comp.dates?.filter(Boolean).join(', ') || comp.date || '—' },
-              { label: 'Lieu',    value: comp.place   || '—' },
-              { label: 'Pays',    value: comp.country || '—' },
-            ].map(({ label, value }) => (
-              <Box key={label}>
-                <Typography variant="caption" sx={{
-                  display: 'block', color: '#94A3B8', fontWeight: 700,
-                  textTransform: 'uppercase', fontSize: '0.6rem', letterSpacing: '0.06em', mb: 0.2,
-                }}>{label}</Typography>
-                <Typography variant="body2">{value}</Typography>
-              </Box>
-            ))}
-          </Box>
-
-          {/* Athletes */}
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.3 }}>
-            {(comp.athletes || []).map((ath, ai) => (
-              <Box key={ai} sx={{ display: 'flex', alignItems: 'baseline', gap: 0.75 }}>
-                <Box sx={{
-                  width: 5, height: 5, borderRadius: '50%', bgcolor: '#CBD5E1',
-                  flexShrink: 0, position: 'relative', top: 1,
-                }} />
-                <Typography variant="body2">
+          {/* Date · Lieu · Pays inline */}
+          <Typography variant="caption" sx={{ color: '#78716C', whiteSpace: 'nowrap', flexShrink: 0 }}>
+            {fmtDates(comp.dates) || fmtISO(comp.date) || '—'}
+            {comp.place   ? ` · ${comp.place}`   : ''}
+            {comp.country ? ` · ${comp.country}` : ''}
+          </Typography>
+          {/* Athletes inline */}
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+            {(comp.athletes || []).map((ath, ai) => {
+              const events = (ath.performances || []).map(p => p.event).filter(Boolean).join(', ');
+              return (
+                <Typography key={ai} variant="caption" sx={{ color: '#1C1917' }}>
+                  {ai > 0 && <span style={{ color: '#CBD5E1', marginRight: 4 }}>·</span>}
                   <strong>{ath.firstName} {ath.lastName}</strong>
-                  {(ath.performances || []).map(p => p.event).filter(Boolean).length > 0 && (
-                    <Typography component="span" variant="caption" color="text.secondary" sx={{ ml: 0.75 }}>
-                      — {(ath.performances || []).map(p => p.event).filter(Boolean).join(', ')}
-                    </Typography>
-                  )}
+                  {events && <span style={{ color: '#78716C' }}> — {events}</span>}
                 </Typography>
-              </Box>
-            ))}
+              );
+            })}
           </Box>
         </Box>
       ))}
-
-      {/* Action footer */}
-      <Box sx={{
-        px: 2.5, py: 1.25, bgcolor: '#FFFBEB', borderTop: '1px solid #FDE68A',
-        display: 'flex', justifyContent: 'flex-end',
-      }}>
-        <Button variant="contained" size="small"
-          startIcon={<EditNoteIcon fontSize="small" />}
-          onClick={() => onComplete(decl)}
-          sx={{ bgcolor: '#D97706', '&:hover': { bgcolor: '#B45309' }, boxShadow: 'none', fontSize: '0.8rem' }}>
-          Compléter les résultats
-        </Button>
-      </Box>
     </Paper>
   );
 }

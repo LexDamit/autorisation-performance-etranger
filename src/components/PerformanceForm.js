@@ -98,7 +98,7 @@ function SectionHeader({ icon, title, onRemove, removeDisabled }) {
 }
 
 // ── Form ─────────────────────────────────────────────────────────────────────
-const NO_RESULT_CODES = ['DNS', 'DNF', 'NM', 'AB', 'DQ'];
+const NO_RESULT_CODES = ['DNS', 'DNF', 'NM', 'DQ'];
 const blankPerf    = () => ({ event: '', result: '', wind: '', rank: '', noResult: '' });
 const blankAthlete = () => ({
   firstName: '', lastName: '', licenceNumber: '', bib: '',
@@ -117,6 +117,7 @@ export default function PerformanceForm({ userProfile, prefill, docId, onSubmitS
   const [email, setEmail]       = useState(userProfile?.email || '');
   const [emailsCc, setEmailsCc] = useState([]);
   const [loading, setLoading]   = useState(false);
+  const [ccInput, setCcInput]   = useState('');
   const [errors, setErrors]     = useState({});
 
   const [competitions, setCompetitions] = useState(
@@ -140,8 +141,13 @@ export default function PerformanceForm({ userProfile, prefill, docId, onSubmitS
 
   const hasError = k => Boolean(errors[k]);
   const getError = k => errors[k] || '';
-  const isValidEmail = v => /\S+@\S+\.\S+/.test(v);
-
+  const isValidEmail  = v => /\S+@\S+\.\S+/.test(v);
+  const addCcEmail    = val => {
+    const v = (val || ccInput).trim();
+    if (v && isValidEmail(v) && !emailsCc.includes(v)) setEmailsCc(prev => [...prev, v]);
+    setCcInput('');
+  };
+  const removeCcEmail = idx => setEmailsCc(prev => prev.filter((_, i) => i !== idx));
 
   // All updaters use .map() to be pure — avoids React 18 StrictMode double-invoke bug
   const updComp = (ci, f, v) => setCompetitions(u => u.map((c, i) => i === ci ? { ...c, [f]: v } : c));
@@ -290,9 +296,10 @@ export default function PerformanceForm({ userProfile, prefill, docId, onSubmitS
         <Box sx={{ px: 2.5, py: 1.5, bgcolor: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
           <Typography variant="subtitle2">Informations de contact</Typography>
         </Box>
-        <Box sx={{ p: 2.5 }}>
+        <Box sx={{ p: 2.5, display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {/* Row 1: Club · Email — separate Grid so Paper overflow:hidden never merges rows */}
           <Grid container spacing={2}>
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12} sm={5}>
               <FormControl fullWidth required size="small" error={hasError('club')}>
                 <InputLabel>Club</InputLabel>
                 <Select value={club} label="Club" onChange={e => setClub(e.target.value)}>
@@ -301,34 +308,34 @@ export default function PerformanceForm({ userProfile, prefill, docId, onSubmitS
                 {hasError('club') && <FormHelperText>{getError('club')}</FormHelperText>}
               </FormControl>
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12} sm={7}>
               <TextField fullWidth required size="small" label="E-mail" value={email}
                 onChange={e => setEmail(e.target.value)}
                 error={hasError('email')} helperText={getError('email')} />
             </Grid>
-            <Grid item xs={12} sm={6}>
-              <Autocomplete
-                multiple freeSolo fullWidth
-                options={[]}
-                value={emailsCc}
-                onChange={(_, newValue) => {
-                  const last = newValue[newValue.length - 1];
-                  if (last && !isValidEmail(last.trim())) return;
-                  setEmailsCc(newValue.map(v => v.trim()).filter(Boolean));
-                }}
-                renderTags={(value, getTagProps) =>
-                  value.map((option, index) => (
-                    <Chip key={index} label={option} size="small" variant="outlined"
-                      sx={{ fontSize: '0.78rem' }} {...getTagProps({ index })} />
-                  ))
-                }
-                renderInput={params => (
-                  <TextField {...params} fullWidth size="small" label="Emails en copie (CC)"
-                    placeholder={emailsCc.length === 0 ? 'Tapez un email et appuyez sur Entrée…' : ''} />
-                )}
-              />
-            </Grid>
           </Grid>
+          {/* Row 2: CC — simple TextField + chip strip below */}
+          <Box>
+            <TextField
+              fullWidth size="small"
+              label="Emails en copie (CC)"
+              placeholder="ex: coach@club.lu, autre@mail.com"
+              value={ccInput}
+              onChange={e => setCcInput(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addCcEmail(ccInput); } }}
+              onBlur={() => addCcEmail(ccInput)}
+              helperText="Appuyez sur Entrée pour valider chaque adresse"
+            />
+            {emailsCc.length > 0 && (
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.75 }}>
+                {emailsCc.map((addr, i) => (
+                  <Chip key={i} label={addr} size="small" variant="outlined"
+                    onDelete={() => removeCcEmail(i)}
+                    sx={{ fontSize: '0.78rem', height: 24 }} />
+                ))}
+              </Box>
+            )}
+          </Box>
         </Box>
       </Paper>
 
@@ -342,12 +349,13 @@ export default function PerformanceForm({ userProfile, prefill, docId, onSubmitS
             removeDisabled={competitions.length === 1}
           />
           <Box sx={{ p: 2.5, display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {/* Row 1: Nom (full width) — standalone so no Grid negative-margin issue */}
+            <TextField fullWidth required size="small" label="Nom de la compétition"
+              value={comp.name} onChange={e => updComp(ci, 'name', e.target.value)}
+              error={hasError(`comp[${ci}].name`)} helperText={getError(`comp[${ci}].name`)} />
+
+            {/* Row 2: Lieu · Pays · Type · Site — own Grid */}
             <Grid container spacing={1.5}>
-              <Grid item xs={12}>
-                <TextField fullWidth required size="small" label="Nom de la compétition"
-                  value={comp.name} onChange={e => updComp(ci, 'name', e.target.value)}
-                  error={hasError(`comp[${ci}].name`)} helperText={getError(`comp[${ci}].name`)} />
-              </Grid>
               <Grid item xs={6} sm={3}>
                 <TextField fullWidth required size="small" label="Lieu" value={comp.place}
                   onChange={e => updComp(ci, 'place', e.target.value)}
@@ -373,39 +381,39 @@ export default function PerformanceForm({ userProfile, prefill, docId, onSubmitS
                   onChange={e => updComp(ci, 'site', e.target.value)}
                   error={hasError(`comp[${ci}].site`)} helperText={getError(`comp[${ci}].site`)} />
               </Grid>
-              <Grid item xs={12}>
-                <Box>
-                  <Typography variant="caption" fontWeight={600} color="text.secondary"
-                    sx={{ display: 'block', mb: 0.5, textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '0.68rem' }}>
-                    Dates *
-                  </Typography>
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, alignItems: 'center' }}>
-                    {comp.dates.map((d, di) => (
-                      <Box key={di} sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
-                        <DateField
-                          label={comp.dates.length > 1 ? `Jour ${di + 1}` : 'Date'}
-                          value={d}
-                          onChange={v => updDate(ci, di, v)}
-                          error={di === 0 && hasError(`comp[${ci}].date`)}
-                          helperText={di === 0 ? getError(`comp[${ci}].date`) : ''}
-                          sx={{ width: 165 }}
-                        />
-                        {comp.dates.length > 1 && (
-                          <IconButton size="small" onClick={() => removeDate(ci, di)}
-                            sx={{ color: 'error.light' }}>
-                            <DeleteOutlineIcon fontSize="small" />
-                          </IconButton>
-                        )}
-                      </Box>
-                    ))}
-                    <Button type="button" variant="outlined" size="small" startIcon={<AddIcon />}
-                      onClick={e => { e.preventDefault(); e.stopPropagation(); addDate(ci); }} sx={{ height: 40, whiteSpace: 'nowrap' }}>
-                      + Jour
-                    </Button>
-                  </Box>
-                </Box>
-              </Grid>
             </Grid>
+
+            {/* Row 3: Dates — standalone Box, no Grid */}
+            <Box>
+              <Typography variant="caption" fontWeight={600} color="text.secondary"
+                sx={{ display: 'block', mb: 0.5, textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '0.68rem' }}>
+                Dates *
+              </Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, alignItems: 'center' }}>
+                {comp.dates.map((d, di) => (
+                  <Box key={di} sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
+                    <DateField
+                      label={comp.dates.length > 1 ? `Jour ${di + 1}` : 'Date'}
+                      value={d}
+                      onChange={v => updDate(ci, di, v)}
+                      error={di === 0 && hasError(`comp[${ci}].date`)}
+                      helperText={di === 0 ? getError(`comp[${ci}].date`) : ''}
+                      sx={{ width: 165 }}
+                    />
+                    {comp.dates.length > 1 && (
+                      <IconButton size="small" onClick={() => removeDate(ci, di)}
+                        sx={{ color: 'error.light' }}>
+                        <DeleteOutlineIcon fontSize="small" />
+                      </IconButton>
+                    )}
+                  </Box>
+                ))}
+                <Button type="button" variant="outlined" size="small" startIcon={<AddIcon />}
+                  onClick={e => { e.preventDefault(); e.stopPropagation(); addDate(ci); }} sx={{ height: 40, whiteSpace: 'nowrap' }}>
+                  + Jour
+                </Button>
+              </Box>
+            </Box>
 
             {/* Athletes */}
             <Box>
@@ -586,22 +594,24 @@ export default function PerformanceForm({ userProfile, prefill, docId, onSubmitS
                                     <DeleteOutlineIcon fontSize="small" />
                                   </IconButton>
                                 </Box>
-                                {/* Row 1: Épreuve + Performance side by side */}
-                              <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'flex-start', mb: 1.25 }}>
-                                <Box sx={{ flex: 1, minWidth: 0 }}>
-                                  <Autocomplete freeSolo fullWidth
-                                    options={epreuves.map(e => e.discipline)}
-                                    value={perf.event ?? ''}
-                                    onChange={(_, v) => updPerf(ci, ai, pi, 'event', v)}
-                                    onInputChange={(_, v) => updPerf(ci, ai, pi, 'event', v)}
-                                    ListboxProps={{ sx: { maxHeight: 400 } }}
-                                    renderInput={params => (
-                                      <TextField {...params} size="small" label="Épreuve" required fullWidth
-                                        error={hasError(`comp[${ci}].ath[${ai}].perf[${pi}].event`)}
-                                        helperText={getError(`comp[${ci}].ath[${ai}].perf[${pi}].event`)} />
-                                    )} />
-                                </Box>
-                                <Box sx={{ width: 190, flexShrink: 0 }}>
+                              {/* Row 1: Épreuve (full width) */}
+                              <Box sx={{ mb: 1 }}>
+                                <Autocomplete freeSolo fullWidth
+                                  options={epreuves.map(e => e.discipline)}
+                                  value={perf.event ?? ''}
+                                  onChange={(_, v) => updPerf(ci, ai, pi, 'event', v)}
+                                  onInputChange={(_, v) => updPerf(ci, ai, pi, 'event', v)}
+                                  ListboxProps={{ sx: { maxHeight: 400 } }}
+                                  renderInput={params => (
+                                    <TextField {...params} size="small" label="Épreuve" required fullWidth
+                                      error={hasError(`comp[${ci}].ath[${ai}].perf[${pi}].event`)}
+                                      helperText={getError(`comp[${ci}].ath[${ai}].perf[${pi}].event`)} />
+                                  )} />
+                              </Box>
+
+                              {/* Row 2: Performance · Vent · Classement */}
+                              <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start', mb: 1 }}>
+                                <Box sx={{ flex: 1, minWidth: 100 }}>
                                   <TextField fullWidth required={!perf.noResult} size="small" label="Performance"
                                     value={perf.noResult ? perf.noResult : perf.result}
                                     disabled={Boolean(perf.noResult)}
@@ -611,23 +621,7 @@ export default function PerformanceForm({ userProfile, prefill, docId, onSubmitS
                                     sx={{ '& .MuiInputBase-input.Mui-disabled': { WebkitTextFillColor: perf.noResult ? '#EF4444' : undefined, fontWeight: perf.noResult ? 700 : undefined } }}
                                   />
                                 </Box>
-                              </Box>
-
-                              {/* Row 2: No-result + Vent + Classement */}
-                              <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center', flexWrap: 'wrap' }}>
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap', flex: 1 }}>
-                                  <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>Sans résultat :</Typography>
-                                  {NO_RESULT_CODES.map(code => (
-                                    <Chip
-                                      key={code} label={code} size="small" clickable
-                                      color={perf.noResult === code ? 'error' : 'default'}
-                                      variant={perf.noResult === code ? 'filled' : 'outlined'}
-                                      onClick={() => updPerf(ci, ai, pi, 'noResult', perf.noResult === code ? '' : code)}
-                                      sx={{ fontSize: '0.72rem', height: 22 }}
-                                    />
-                                  ))}
-                                </Box>
-                                <Box sx={{ width: 130, flexShrink: 0 }}>
+                                <Box sx={{ width: 118, flexShrink: 0 }}>
                                   {showWind ? (
                                     <TextField fullWidth required={windReq} size="small" label="Vent" value={perf.wind}
                                       onChange={e => updPerf(ci, ai, pi, 'wind', e.target.value)}
@@ -646,10 +640,24 @@ export default function PerformanceForm({ userProfile, prefill, docId, onSubmitS
                                     <TextField fullWidth size="small" label="Vent" value="/" disabled />
                                   )}
                                 </Box>
-                                <Box sx={{ width: 160, flexShrink: 0 }}>
+                                <Box sx={{ width: 130, flexShrink: 0 }}>
                                   <TextField fullWidth size="small" label="Classement" value={perf.rank}
                                     onChange={e => updPerf(ci, ai, pi, 'rank', e.target.value)} />
                                 </Box>
+                              </Box>
+
+                              {/* Row 3: Sans résultat chips */}
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap' }}>
+                                <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>Sans résultat :</Typography>
+                                {NO_RESULT_CODES.map(code => (
+                                  <Chip
+                                    key={code} label={code} size="small" clickable
+                                    color={perf.noResult === code ? 'error' : 'default'}
+                                    variant={perf.noResult === code ? 'filled' : 'outlined'}
+                                    onClick={() => updPerf(ci, ai, pi, 'noResult', perf.noResult === code ? '' : code)}
+                                    sx={{ fontSize: '0.72rem', height: 22 }}
+                                  />
+                                ))}
                               </Box>
                               </Box>
                             );
