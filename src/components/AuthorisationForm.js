@@ -135,7 +135,77 @@ function AthleteBlock({ ath, ci, ai, club, onUpdate, onRemove, removeDisabled, e
       />
       <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
 
-        {/* ── Row 1 : Prénom · Nom · Dossard — flex (not Grid) to avoid overflow:hidden width bug ── */}
+        {/* ── Dossard / Athlète search — full width, shown first ── */}
+        <Autocomplete
+          fullWidth
+          options={options}
+          value={ath._flaAthlete || null}
+          onChange={(_, val) => handleFlaSelect(val)}
+          getOptionLabel={a => a ? `${a.firstName} ${a.lastName}` : ''}
+          isOptionEqualToValue={(a, b) => a.licenceNumber === b.licenceNumber}
+          filterOptions={(opts, { inputValue }) => {
+            const q = inputValue.trim();
+            if (!q) return [];
+            if (/^\d+$/.test(q)) {
+              return opts.filter(a => String(a.bib || '').startsWith(q)).slice(0, 20);
+            }
+            if (q.length < 2) return [];
+            const norm = s => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+            const ql = norm(q);
+            return opts.filter(a => norm(`${a.firstName} ${a.lastName}`).includes(ql)).slice(0, 40);
+          }}
+          noOptionsText="Aucun résultat — tapez un n° dossard ou 2+ lettres du nom"
+          componentsProps={{ popper: { style: { minWidth: 360 } } }}
+          renderOption={(props, a) => (
+            <Box component="li" {...props} key={a.licenceNumber}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
+                <Typography variant="caption" sx={{ fontWeight: 700, color: a.bib ? '#3730A3' : '#CBD5E1', width: 42, flexShrink: 0 }}>
+                  {a.bib ? `#${a.bib}` : '—'}
+                </Typography>
+                <Box>
+                  <Typography variant="body2" fontWeight={500}>{a.firstName} {a.lastName}</Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {a.category} · {a.club}
+                  </Typography>
+                </Box>
+              </Box>
+            </Box>
+          )}
+          renderInput={params => (
+            <TextField {...params} size="small" label="Dossard / Athlète"
+              placeholder="N° dossard ou nom…"
+              InputProps={{
+                ...params.InputProps,
+                startAdornment: (
+                  <>
+                    <Tooltip title="Tapez le numéro de dossard directement, ou recherchez par nom (2+ lettres)" placement="top">
+                      <InfoOutlinedIcon sx={{ fontSize: 15, color: '#94A3B8', mr: 0.5, cursor: 'help', flexShrink: 0 }} />
+                    </Tooltip>
+                    {params.InputProps.startAdornment}
+                  </>
+                ),
+              }}
+            />
+          )}
+        />
+
+        {/* Dossard badge when FLA athlete linked */}
+        {ath._flaAthlete && (
+          <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', alignItems: 'center' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, px: 1.25, py: 0.4, borderRadius: 1.5, bgcolor: '#EEF2FF', border: '1px solid #C7D2FE' }}>
+              <BadgeIcon sx={{ fontSize: 14, color: '#3730A3' }} />
+              <Typography variant="caption" sx={{ color: '#3730A3', fontWeight: 700 }}>
+                Dossard #{ath._flaAthlete.bib}
+              </Typography>
+            </Box>
+            <IconButton size="small" onClick={() => handleFlaSelect(null)}
+              sx={{ color: 'text.disabled', p: 0.25 }}>
+              <LinkOffIcon sx={{ fontSize: 14 }} />
+            </IconButton>
+          </Box>
+        )}
+
+        {/* ── Prénom · Nom — flex row ── */}
         <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
           <TextField size="small" required label="Prénom"
             value={ath.firstName}
@@ -145,63 +215,9 @@ function AthleteBlock({ ath, ci, ai, club, onUpdate, onRemove, removeDisabled, e
             value={ath.lastName}
             onChange={e => onUpdate({ lastName: e.target.value })}
             sx={{ flex: '1 1 150px' }} />
-          <Box sx={{ flex: '1 1 200px' }}>
-            <Autocomplete
-              fullWidth
-              options={options}
-              value={ath._flaAthlete || null}
-              onChange={(_, val) => handleFlaSelect(val)}
-              getOptionLabel={a => a ? `${a.firstName} ${a.lastName}` : ''}
-              isOptionEqualToValue={(a, b) => a.licenceNumber === b.licenceNumber}
-              filterOptions={(opts, { inputValue }) => {
-                const q = inputValue.trim();
-                if (!q) return [];
-                if (/^\d+$/.test(q)) {
-                  return opts.filter(a => String(a.bib || '').startsWith(q)).slice(0, 20);
-                }
-                if (q.length < 2) return [];
-                const norm = s => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
-                const ql = norm(q);
-                return opts.filter(a => norm(`${a.firstName} ${a.lastName}`).includes(ql)).slice(0, 40);
-              }}
-              noOptionsText="Aucun résultat — tapez un n° dossard ou 2+ lettres du nom"
-              componentsProps={{ popper: { style: { minWidth: 360 } } }}
-              renderOption={(props, a) => (
-                <Box component="li" {...props} key={a.licenceNumber}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
-                    <Typography variant="caption" sx={{ fontWeight: 700, color: a.bib ? '#3730A3' : '#CBD5E1', width: 42, flexShrink: 0 }}>
-                      {a.bib ? `#${a.bib}` : '—'}
-                    </Typography>
-                    <Box>
-                      <Typography variant="body2" fontWeight={500}>{a.firstName} {a.lastName}</Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {a.category} · {a.club}
-                      </Typography>
-                    </Box>
-                  </Box>
-                </Box>
-              )}
-              renderInput={params => (
-                <TextField {...params} size="small" label="Dossard / Athlète"
-                  placeholder="N° ou nom…"
-                  InputProps={{
-                    ...params.InputProps,
-                    startAdornment: (
-                      <>
-                        <Tooltip title="Tapez le numéro de dossard directement, ou recherchez par nom (2+ lettres)" placement="top">
-                          <InfoOutlinedIcon sx={{ fontSize: 15, color: '#94A3B8', mr: 0.5, cursor: 'help', flexShrink: 0 }} />
-                        </Tooltip>
-                        {params.InputProps.startAdornment}
-                      </>
-                    ),
-                  }}
-                />
-              )}
-            />
-          </Box>
         </Box>
 
-        {/* ── Row 2 : Catégorie · Sexe inline ── */}
+        {/* ── Catégorie · Sexe inline ── */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
           <FormControl required size="small"
             error={Boolean(categoryErr)}
@@ -232,27 +248,6 @@ function AthleteBlock({ ath, ci, ai, club, onUpdate, onRemove, removeDisabled, e
             {sexErr && <FormHelperText error sx={{ ml: 0 }}>Sexe obligatoire</FormHelperText>}
           </Box>
         </Box>
-
-        {/* Dossard badge when FLA athlete linked */}
-        {ath._flaAthlete && (
-          <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', alignItems: 'center' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, px: 1.25, py: 0.4, borderRadius: 1.5, bgcolor: '#EEF2FF', border: '1px solid #C7D2FE' }}>
-              <BadgeIcon sx={{ fontSize: 14, color: '#3730A3' }} />
-              <Typography variant="caption" sx={{ color: '#3730A3', fontWeight: 700 }}>
-                Dossard #{ath._flaAthlete.bib}
-              </Typography>
-            </Box>
-            {ath._flaAthlete.licenceNumber && (
-              <Typography variant="caption" color="text.secondary">
-                Licence : {ath._flaAthlete.licenceNumber}
-              </Typography>
-            )}
-            <IconButton size="small" onClick={() => handleFlaSelect(null)}
-              sx={{ color: 'text.disabled', p: 0.25 }}>
-              <LinkOffIcon sx={{ fontSize: 14 }} />
-            </IconButton>
-          </Box>
-        )}
 
         {/* Events */}
         <Box>
