@@ -460,9 +460,9 @@ export default function AuthorisationForm({ userProfile, onSubmitSuccess }) {
         <Box sx={{ px: 2.5, py: 1.5, bgcolor: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
           <Typography variant="subtitle2">Informations du demandeur</Typography>
         </Box>
-        <Box sx={{ p: 2.5 }}>
+        <Box sx={{ p: 2.5, display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {/* ── Row 1 : Club · Prénom · Nom ── separate Grid so it never merges with row 2 */}
           <Grid container spacing={2}>
-            {/* Row 1: Club · Prénom · Nom */}
             <Grid item xs={12} sm={4}>
               <FormControl fullWidth required size="small">
                 <InputLabel>Club</InputLabel>
@@ -479,47 +479,37 @@ export default function AuthorisationForm({ userProfile, onSubmitSuccess }) {
               <TextField fullWidth required size="small" label="Nom du demandeur"
                 value={lastName} onChange={e => setLastName(e.target.value)} />
             </Grid>
+          </Grid>
 
-            {/* Row 2: Email · CC */}
-            <Grid item xs={12} sm={6}>
+          {/* ── Row 2 : Email · CC ── */}
+          <Grid container spacing={2}>
+            <Grid item xs={12} sm={5}>
               <TextField fullWidth required size="small" type="email" label="Email du demandeur"
                 value={email} onChange={e => setEmail(e.target.value)} />
             </Grid>
-            <Grid item xs={12} sm={6}>
-              {/* ── CC chip input ── */}
-              <Box sx={{
-                border: '1px solid #C4C4C4', borderRadius: 1, px: 1.25, py: 0.75,
-                minHeight: 40, display: 'flex', flexWrap: 'wrap', gap: 0.5, alignItems: 'center',
-                '&:focus-within': { borderColor: 'primary.main', borderWidth: '2px', mx: '-1px' },
-              }}>
-                <Typography variant="caption" sx={{
-                  position: 'absolute', mt: -2.5, ml: -0.75, px: 0.5,
-                  bgcolor: 'white', color: '#666', fontSize: '0.75rem',
-                  pointerEvents: 'none',
-                }}>
-                  Emails en copie (CC)
-                </Typography>
-                {emailsCc.map((addr, i) => (
-                  <Chip key={i} label={addr} size="small" variant="outlined"
-                    onDelete={() => removeCcEmail(i)}
-                    sx={{ fontSize: '0.78rem', height: 24 }} />
-                ))}
-                <input
-                  type="email"
-                  value={ccInput}
-                  onChange={e => setCcInput(e.target.value)}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addCcEmail(); }
-                    if (e.key === 'Backspace' && !ccInput && emailsCc.length > 0) removeCcEmail(emailsCc.length - 1);
-                  }}
-                  onBlur={() => addCcEmail()}
-                  placeholder={emailsCc.length === 0 ? 'email@exemple.com, Entrée pour ajouter…' : ''}
-                  style={{
-                    border: 'none', outline: 'none', flex: 1, minWidth: 160,
-                    fontSize: '0.875rem', background: 'transparent', padding: '2px 0',
-                  }}
-                />
-              </Box>
+            <Grid item xs={12} sm={7}>
+              {/* Simple text input: type one or more emails separated by comma, press Enter or blur to add */}
+              <TextField
+                fullWidth size="small"
+                label="Emails en copie (CC)"
+                placeholder="ex: coach@club.lu, autre@mail.com"
+                value={ccInput}
+                onChange={e => setCcInput(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') { e.preventDefault(); addCcEmail(ccInput); }
+                }}
+                onBlur={() => addCcEmail(ccInput)}
+                helperText="Appuyez sur Entrée pour valider chaque adresse"
+              />
+              {emailsCc.length > 0 && (
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.75 }}>
+                  {emailsCc.map((addr, i) => (
+                    <Chip key={i} label={addr} size="small" variant="outlined"
+                      onDelete={() => removeCcEmail(i)}
+                      sx={{ fontSize: '0.78rem', height: 24 }} />
+                  ))}
+                </Box>
+              )}
             </Grid>
           </Grid>
         </Box>
