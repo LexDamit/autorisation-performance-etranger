@@ -15,6 +15,7 @@ import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 import athletes from '../data/athletes.json';
 import epreuves from '../data/epreuves.json';
+import { categoryFromBirthYear, FLA_CATEGORIES } from '../utils/athleteCategory';
 
 const clubs = [
   '-', 'CA Belvaux', 'CA Dudelange', 'CAE Grevenmacher', 'CA FOLA',
@@ -22,22 +23,7 @@ const clubs = [
   'CS du Nord', 'LIAL Luxembourg', 'RBUAP', 'TRILUX', 'TRISPEED Mamer', 'X3M', 'FLA-IND',
 ];
 
-const CLUB_NORMALIZE = {
-  'CSL':                                         'CS Luxembourg',
-  'CA FOLA  Esch/Alzette':                       'CA FOLA',
-  'CA FOLA Esch/Alzette':                        'CA FOLA',
-  'TEAM X3M SNOOZE':                             'X3M',
-  'Cercle Sportif du Nord Clervaux':             'CS du Nord',
-  'Liichtathletik Club Lëtzebuerg':              'LIAL Luxembourg',
-  'R.B.U.A.P.':                                  'RBUAP',
-  "Fédération Luxembourgeoise d'Athlétisme":     'FLA-IND',
-};
-const normalizeClub = name => CLUB_NORMALIZE[name] || name;
-
-const categories = [
-  '-','U12 Débutant(e)','U14 Scolaire','U16 Minime','U18 Cadet(te)',
-  'U20 Junior','U23 Espoir','Senior','Masters',
-];
+const categories = FLA_CATEGORIES;
 
 // ── dd/mm/yyyy date field (stores ISO YYYY-MM-DD internally) ──────────────────
 function DateField({ value, onChange, label, required, sx }) {
@@ -100,24 +86,29 @@ function SectionHeader({ icon, title, onRemove, removeDisabled }) {
 }
 
 // ── Athlete entry block ───────────────────────────────────────────────────────
-function AthleteBlock({ ath, ci, ai, club, onUpdate, onRemove, removeDisabled, errors = {} }) {
-  const options = club && club !== '-'
-    ? athletes.filter(a => normalizeClub(a.club) === club)
+// role: 'club' → name+bib search within own club
+//       'athlete' | 'shared_account' → bib-only search across all clubs (privacy)
+//       'federation_staff' | 'admin' → name+bib search across all clubs
+function AthleteBlock({ ath, ci, ai, club, role, onUpdate, onRemove, removeDisabled, errors = {} }) {
+  const bibOnly = role === 'athlete' || role === 'shared_account';
+
+  // Club role: restrict to own club. Bib-only roles: all clubs (they enter bib directly).
+  const options = (role === 'club' && club && club !== '-')
+    ? athletes.filter(a => a.club === club)
     : athletes;
 
   const handleFlaSelect = val => {
     if (val) {
       onUpdate({
-        firstName:     val.firstName,
-        lastName:      val.lastName,
-        licenceNumber: val.licenceNumber || '',
-        bib:           val.bib          || '',
-        category:      val.category     || '-',
-        sex:           val.sex          || '',
-        _flaAthlete:   val,
+        firstName:   val.firstName,
+        lastName:    val.lastName,
+        bib:         val.bib || '',
+        category:    categoryFromBirthYear(val.birthYear),
+        sex:         val.sex || '',
+        _flaAthlete: val,
       });
     } else {
-      onUpdate({ _flaAthlete: null, licenceNumber: '', bib: '' });
+      onUpdate({ _flaAthlete: null, bib: '' });
     }
   };
 
@@ -142,19 +133,25 @@ function AthleteBlock({ ath, ci, ai, club, onUpdate, onRemove, removeDisabled, e
           value={ath._flaAthlete || null}
           onChange={(_, val) => handleFlaSelect(val)}
           getOptionLabel={a => a ? `${a.firstName} ${a.lastName}` : ''}
-          isOptionEqualToValue={(a, b) => a.licenceNumber === b.licenceNumber}
+          isOptionEqualToValue={(a, b) => a.bib === b.bib}
           filterOptions={(opts, { inputValue }) => {
             const q = inputValue.trim();
             if (!q) return [];
             if (/^\d+$/.test(q)) {
+              // Bib search: available to all roles
               return opts.filter(a => String(a.bib || '').startsWith(q)).slice(0, 20);
             }
+            // Name search: only for club / staff / admin
+            if (bibOnly) return [];
             if (q.length < 2) return [];
             const norm = s => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
             const ql = norm(q);
             return opts.filter(a => norm(`${a.firstName} ${a.lastName}`).includes(ql)).slice(0, 40);
           }}
-          noOptionsText="Aucun résultat — tapez un n° dossard ou 2+ lettres du nom"
+          noOptionsText={bibOnly
+            ? 'Tapez votre numéro de dossard'
+            : 'Aucun résultat — tapez un n° dossard ou 2+ lettres du nom'
+          }
           componentsProps={{ popper: { style: { minWidth: 360 } } }}
           renderOption={(props, a) => (
             <Box component="li" {...props} key={a.licenceNumber}>
@@ -173,13 +170,16 @@ function AthleteBlock({ ath, ci, ai, club, onUpdate, onRemove, removeDisabled, e
           )}
           renderInput={params => (
             <TextField {...params} size="small" label="Athlète"
-              placeholder="N° dossard ou nom…"
+              placeholder={bibOnly ? 'Numéro de dossard…' : 'N° dossard ou nom…'}
               InputProps={{
                 ...params.InputProps,
                 startAdornment: (
                   <>
                     <Tooltip
-                      title="Recherche dans la base de données locale de la FLA. Attention : cette liste n'est pas toujours à jour — les licences les plus récentes peuvent ne pas encore y figurer. Dans ce cas, saisissez le prénom et le nom manuellement ci-dessous."
+                      title={bibOnly
+                        ? 'Entrez votre numéro de dossard pour retrouver votre fiche dans la base FLA.'
+                        : 'Recherche dans la base de données locale de la FLA (athlètes de votre club avec dossard). Attention : les licences les plus récentes peuvent ne pas encore y figurer — saisissez le nom manuellement dans ce cas.'
+                      }
                       placement="top"
                     >
                       <InfoOutlinedIcon sx={{ fontSize: 15, color: '#94A3B8', mr: 0.5, cursor: 'help', flexShrink: 0 }} />
@@ -305,7 +305,7 @@ function AthleteBlock({ ath, ci, ai, club, onUpdate, onRemove, removeDisabled, e
 
 // ── Main form ─────────────────────────────────────────────────────────────────
 const blankAthlete = () => ({
-  firstName: '', lastName: '', licenceNumber: '', bib: '',
+  firstName: '', lastName: '', bib: '',
   category: '-', sex: '',
   _flaAthlete: null, events: [''],
 });
@@ -317,6 +317,7 @@ const blankCompetition = () => ({
 
 export default function AuthorisationForm({ userProfile, onSubmitSuccess }) {
   const prefillClub = userProfile?.club || '-';
+  const role        = userProfile?.role || 'athlete';
 
   const [club, setClub]           = useState(prefillClub);
   const [email, setEmail]         = useState(userProfile?.email || '');
@@ -589,7 +590,7 @@ export default function AuthorisationForm({ userProfile, onSubmitSuccess }) {
                 {comp.athletes.map((ath, ai) => (
                   <AthleteBlock
                     key={ai}
-                    ath={ath} ci={ci} ai={ai} club={club}
+                    ath={ath} ci={ci} ai={ai} club={club} role={role}
                     onUpdate={patch => updAthlete(ci, ai, patch)}
                     onRemove={() => removeAthlete(ci, ai)}
                     removeDisabled={comp.athletes.length === 1}

@@ -16,6 +16,7 @@ import { addDoc, doc, updateDoc, collection, serverTimestamp } from 'firebase/fi
 import { auth, db } from '../firebase';
 import epreuves from '../data/epreuves.json';
 import athletes from '../data/athletes.json';
+import { categoryFromBirthYear, FLA_CATEGORIES } from '../utils/athleteCategory';
 
 const clubs = [
   '-', 'CA Belvaux', 'CA Dudelange', 'CAE Grevenmacher', 'CA FOLA',
@@ -23,22 +24,7 @@ const clubs = [
   'CS du Nord', 'LIAL Luxembourg', 'RBUAP', 'TRILUX', 'TRISPEED Mamer', 'X3M', 'FLA-IND',
 ];
 
-// Maps athletes.json club names → dropdown values
-const CLUB_NORMALIZE = {
-  'CSL':                                         'CS Luxembourg',
-  'CA FOLA  Esch/Alzette':                       'CA FOLA',
-  'CA FOLA Esch/Alzette':                        'CA FOLA',
-  'TEAM X3M SNOOZE':                             'X3M',
-  'Cercle Sportif du Nord Clervaux':             'CS du Nord',
-  'Liichtathletik Club Lëtzebuerg':              'LIAL Luxembourg',
-  'R.B.U.A.P.':                                  'RBUAP',
-  "Fédération Luxembourgeoise d'Athlétisme":     'FLA-IND',
-};
-const normalizeClub = name => CLUB_NORMALIZE[name] || name;
-const categories = [
-  '-','U12 Débutant(e)','U14 Scolaire','U16 Minime','U18 Cadet(te)',
-  'U20 Junior','U23 Espoir','Senior','Masters',
-];
+const categories = FLA_CATEGORIES;
 
 // ── dd/mm/yyyy date field ─────────────────────────────────────────────────────
 function DateField({ value, onChange, label, required, sx, error, helperText }) {
@@ -101,7 +87,7 @@ function SectionHeader({ icon, title, onRemove, removeDisabled }) {
 const NO_RESULT_CODES = ['DNS', 'DNF', 'NM', 'DQ'];
 const blankPerf    = () => ({ event: '', result: '', wind: '', rank: '', noResult: '' });
 const blankAthlete = () => ({
-  firstName: '', lastName: '', licenceNumber: '', bib: '',
+  firstName: '', lastName: '', bib: '',
   category: '-', sex: '', _flaAthlete: null,
   performances: [blankPerf()],
 });
@@ -112,6 +98,8 @@ const blankComp = () => ({
 
 export default function PerformanceForm({ userProfile, prefill, docId, onSubmitSuccess, onCancel }) {
   const prefillClub = prefill?.club || userProfile?.club || '-';
+  const role        = userProfile?.role || 'athlete';
+  const bibOnly = role === 'athlete' || role === 'shared_account';
 
   const [club, setClub]         = useState(prefillClub);
   const [email, setEmail]       = useState(userProfile?.email || '');
@@ -128,7 +116,7 @@ export default function PerformanceForm({ userProfile, prefill, docId, onSubmitS
           site: c.site || '', type: c.type || 'outdoor',
           athletes: (c.athletes || []).map(a => ({
             firstName: a.firstName || '', lastName: a.lastName || '',
-            licenceNumber: a.licenceNumber || '', bib: a.bib || '',
+            bib: a.bib || '',
             category: a.category || '-', sex: a.sex || '',
             _flaAthlete: null,
             performances: a.performances?.length
@@ -279,8 +267,9 @@ export default function PerformanceForm({ userProfile, prefill, docId, onSubmitS
     setLoading(false);
   };
 
-  const flaOptions = () => club && club !== '-'
-    ? athletes.filter(a => normalizeClub(a.club) === club)
+  // Club: search within own club only. Bib-only roles: all clubs (find by bib number).
+  const flaOptions = () => (role === 'club' && club && club !== '-')
+    ? athletes.filter(a => a.club === club)
     : athletes;
 
   return (
@@ -441,29 +430,33 @@ export default function PerformanceForm({ userProfile, prefill, docId, onSubmitS
                           if (val) {
                             updAth(ci, ai, {
                               firstName: val.firstName, lastName: val.lastName,
-                              licenceNumber: val.licenceNumber || '',
-                              bib: val.bib || '', category: val.category || '-',
+                              bib: val.bib || '',
+                              category: categoryFromBirthYear(val.birthYear),
                               sex: val.sex || '',
                               _flaAthlete: val,
                             });
                           } else {
-                            updAth(ci, ai, { _flaAthlete: null, licenceNumber: '', bib: '' });
+                            updAth(ci, ai, { _flaAthlete: null, bib: '' });
                           }
                         }}
                         getOptionLabel={a => a ? `${a.firstName} ${a.lastName}` : ''}
-                        isOptionEqualToValue={(a, b) => a.licenceNumber === b.licenceNumber}
+                        isOptionEqualToValue={(a, b) => a.bib === b.bib}
                         filterOptions={(opts, { inputValue }) => {
                           const q = inputValue.trim();
                           if (!q) return [];
                           if (/^\d+$/.test(q)) {
                             return opts.filter(a => String(a.bib || '').startsWith(q)).slice(0, 20);
                           }
+                          if (bibOnly) return [];
                           if (q.length < 2) return [];
                           const norm = s => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
                           const ql = norm(q);
                           return opts.filter(a => norm(`${a.firstName} ${a.lastName}`).includes(ql)).slice(0, 40);
                         }}
-                        noOptionsText="Aucun résultat — tapez un n° dossard ou 2+ lettres du nom"
+                        noOptionsText={bibOnly
+                          ? 'Tapez votre numéro de dossard'
+                          : 'Aucun résultat — tapez un n° dossard ou 2+ lettres du nom'
+                        }
                         componentsProps={{ popper: { style: { minWidth: 360 } } }}
                         renderOption={(props, a) => (
                           <Box component="li" {...props} key={a.licenceNumber}>
@@ -484,13 +477,16 @@ export default function PerformanceForm({ userProfile, prefill, docId, onSubmitS
                         )}
                         renderInput={params => (
                           <TextField {...params} size="small" label="Athlète"
-                            placeholder="N° dossard ou nom…"
+                            placeholder={bibOnly ? 'Numéro de dossard…' : 'N° dossard ou nom…'}
                             InputProps={{
                               ...params.InputProps,
                               startAdornment: (
                                 <>
                                   <Tooltip
-                                    title="Recherche dans la base de données locale de la FLA. Attention : cette liste n'est pas toujours à jour — les licences les plus récentes peuvent ne pas encore y figurer. Dans ce cas, saisissez le prénom et le nom manuellement ci-dessous."
+                                    title={bibOnly
+                                      ? 'Entrez votre numéro de dossard pour retrouver votre fiche dans la base FLA.'
+                                      : 'Recherche dans la base de données locale de la FLA (athlètes de votre club avec dossard). Attention : les licences les plus récentes peuvent ne pas encore y figurer — saisissez le nom manuellement dans ce cas.'
+                                    }
                                     placement="top"
                                   >
                                     <InfoOutlinedIcon sx={{ fontSize: 15, color: '#94A3B8', mr: 0.5, cursor: 'help', flexShrink: 0 }} />
