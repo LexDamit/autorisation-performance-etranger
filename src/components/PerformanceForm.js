@@ -143,31 +143,38 @@ export default function PerformanceForm({ userProfile, prefill, docId, onSubmitS
   const isValidEmail = v => /\S+@\S+\.\S+/.test(v);
 
 
-  const updComp = (ci, f, v) => setCompetitions(u => {
-    const x = [...u]; x[ci] = { ...x[ci], [f]: v }; return x;
-  });
-  const updAth = (ci, ai, patch) => setCompetitions(u => {
-    const x = [...u];
-    x[ci].athletes = x[ci].athletes.map((a, i) => i === ai ? { ...a, ...patch } : a);
-    return x;
-  });
-  const updPerf = (ci, ai, pi, f, v) => setCompetitions(u => {
-    const x = [...u];
-    x[ci].athletes[ai].performances = x[ci].athletes[ai].performances.map((p, i) =>
-      i === pi ? { ...p, [f]: v } : p
-    );
-    return x;
-  });
+  // All updaters use .map() to be pure — avoids React 18 StrictMode double-invoke bug
+  const updComp = (ci, f, v) => setCompetitions(u => u.map((c, i) => i === ci ? { ...c, [f]: v } : c));
 
-  const addAthlete    = ci => setCompetitions(u => { const x=[...u]; x[ci].athletes=[...x[ci].athletes,blankAthlete()]; return x; });
-  const removeAthlete = (ci,ai) => setCompetitions(u => { const x=[...u]; x[ci].athletes=x[ci].athletes.filter((_,i)=>i!==ai); return x; });
-  const addPerf       = (ci,ai) => setCompetitions(u => { const x=[...u]; x[ci].athletes[ai].performances=[...x[ci].athletes[ai].performances,blankPerf()]; return x; });
-  const removePerf    = (ci,ai,pi) => setCompetitions(u => { const x=[...u]; const next=x[ci].athletes[ai].performances.filter((_,i)=>i!==pi); x[ci].athletes[ai].performances=next.length?next:[blankPerf()]; return x; });
-  const addDate    = ci        => setCompetitions(u => { const x=[...u]; x[ci].dates=[...x[ci].dates,'']; return x; });
-  const removeDate = (ci, di)  => setCompetitions(u => { const x=[...u]; const next=x[ci].dates.filter((_,i)=>i!==di); x[ci].dates=next.length?next:[''];return x; });
-  const updDate    = (ci,di,v) => setCompetitions(u => { const x=[...u]; x[ci].dates=x[ci].dates.map((d,i)=>i===di?v:d); return x; });
+  const updAth = (ci, ai, patch) => setCompetitions(u => u.map((c, i) => i !== ci ? c : {
+    ...c, athletes: c.athletes.map((a, j) => j === ai ? { ...a, ...patch } : a),
+  }));
+
+  const updPerf = (ci, ai, pi, f, v) => setCompetitions(u => u.map((c, i) => i !== ci ? c : {
+    ...c, athletes: c.athletes.map((a, j) => j !== ai ? a : {
+      ...a, performances: a.performances.map((p, k) => k === pi ? { ...p, [f]: v } : p),
+    }),
+  }));
+
+  const addAthlete    = ci       => setCompetitions(u => u.map((c, i) => i !== ci ? c : { ...c, athletes: [...c.athletes, blankAthlete()] }));
+  const removeAthlete = (ci, ai) => setCompetitions(u => u.map((c, i) => i !== ci ? c : { ...c, athletes: c.athletes.filter((_, j) => j !== ai) }));
+  const addPerf       = (ci, ai) => setCompetitions(u => u.map((c, i) => i !== ci ? c : {
+    ...c, athletes: c.athletes.map((a, j) => j !== ai ? a : { ...a, performances: [...a.performances, blankPerf()] }),
+  }));
+  const removePerf    = (ci, ai, pi) => setCompetitions(u => u.map((c, i) => i !== ci ? c : {
+    ...c, athletes: c.athletes.map((a, j) => j !== ai ? a : {
+      ...a, performances: (() => { const n = a.performances.filter((_, k) => k !== pi); return n.length ? n : [blankPerf()]; })(),
+    }),
+  }));
+  const addDate    = ci        => setCompetitions(u => u.map((c, i) => i !== ci ? c : { ...c, dates: [...c.dates, ''] }));
+  const removeDate = (ci, di)  => setCompetitions(u => u.map((c, i) => {
+    if (i !== ci) return c;
+    const next = c.dates.filter((_, j) => j !== di);
+    return { ...c, dates: next.length ? next : [''] };
+  }));
+  const updDate    = (ci, di, v) => setCompetitions(u => u.map((c, i) => i !== ci ? c : { ...c, dates: c.dates.map((d, j) => j === di ? v : d) }));
   const addCompetition    = () => setCompetitions(u => [...u, blankComp()]);
-  const removeCompetition = ci => setCompetitions(u => u.filter((_,i) => i!==ci));
+  const removeCompetition = ci => setCompetitions(u => u.filter((_, i) => i !== ci));
 
   const validate = () => {
     const next = {};

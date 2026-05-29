@@ -331,26 +331,24 @@ export default function AuthorisationForm({ userProfile, onSubmitSuccess }) {
 
   const isValidEmail = v => /\S+@\S+\.\S+/.test(v);
 
-  // Competition helpers
-  const updComp    = (ci, f, v)  => setCompetitions(u => { const x=[...u]; x[ci]={...x[ci],[f]:v}; return x; });
-  const updDate    = (ci, di, v) => setCompetitions(u => { const x=[...u]; x[ci].dates=x[ci].dates.map((d,i)=>i===di?v:d); return x; });
-  const addDate    = ci          => setCompetitions(u => { const x=[...u]; x[ci].dates=[...x[ci].dates,'']; return x; });
-  const removeDate = (ci, di)    => setCompetitions(u => {
-    const x=[...u]; const next=x[ci].dates.filter((_,i)=>i!==di); x[ci].dates=next.length?next:[''];return x;
-  });
+  // Competition helpers — all use .map() so updaters are pure (no mutation of original refs)
+  const updComp    = (ci, f, v)  => setCompetitions(u => u.map((c, i) => i === ci ? { ...c, [f]: v } : c));
+  const updDate    = (ci, di, v) => setCompetitions(u => u.map((c, i) => i !== ci ? c : { ...c, dates: c.dates.map((d, j) => j === di ? v : d) }));
+  const addDate    = ci          => setCompetitions(u => u.map((c, i) => i !== ci ? c : { ...c, dates: [...c.dates, ''] }));
+  const removeDate = (ci, di)    => setCompetitions(u => u.map((c, i) => {
+    if (i !== ci) return c;
+    const next = c.dates.filter((_, j) => j !== di);
+    return { ...c, dates: next.length ? next : [''] };
+  }));
   const addCompetition    = () => setCompetitions(u => [...u, blankCompetition()]);
-  const removeCompetition = ci  => setCompetitions(u => u.filter((_,i)=>i!==ci));
+  const removeCompetition = ci  => setCompetitions(u => u.filter((_, i) => i !== ci));
 
   // Athlete helpers
-  const updAthlete = (ci, ai, patch) => setCompetitions(u => {
-    const x=[...u];
-    x[ci].athletes = x[ci].athletes.map((a,i) => i===ai ? {...a,...patch} : a);
-    return x;
-  });
-  const addAthlete    = ci => setCompetitions(u => { const x=[...u]; x[ci].athletes=[...x[ci].athletes,blankAthlete()]; return x; });
-  const removeAthlete = (ci,ai) => setCompetitions(u => {
-    const x=[...u]; x[ci].athletes=x[ci].athletes.filter((_,i)=>i!==ai); return x;
-  });
+  const updAthlete    = (ci, ai, patch) => setCompetitions(u => u.map((c, i) => i !== ci ? c : {
+    ...c, athletes: c.athletes.map((a, j) => j === ai ? { ...a, ...patch } : a),
+  }));
+  const addAthlete    = ci       => setCompetitions(u => u.map((c, i) => i !== ci ? c : { ...c, athletes: [...c.athletes, blankAthlete()] }));
+  const removeAthlete = (ci, ai) => setCompetitions(u => u.map((c, i) => i !== ci ? c : { ...c, athletes: c.athletes.filter((_, j) => j !== ai) }));
 
   // CC chip helpers
   const addCcEmail = val => {
