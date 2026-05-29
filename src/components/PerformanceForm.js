@@ -432,7 +432,7 @@ export default function PerformanceForm({ userProfile, prefill, docId, onSubmitS
                     />
                     <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
 
-                      {/* ── Dossard / Athlète search — full width, shown first ── */}
+                      {/* ── Athlète search — full width, shown first ── */}
                       <Autocomplete
                         fullWidth
                         options={flaOptions()}
@@ -476,20 +476,23 @@ export default function PerformanceForm({ userProfile, prefill, docId, onSubmitS
                                   {a.firstName} {a.lastName}
                                 </Typography>
                                 <Typography variant="caption" color="text.secondary">
-                                  {a.category} · {a.club}
+                                  {a.category}{a.sex ? ` · ${a.sex}` : ''} · {a.club}
                                 </Typography>
                               </Box>
                             </Box>
                           </Box>
                         )}
                         renderInput={params => (
-                          <TextField {...params} size="small" label="Dossard / Athlète"
+                          <TextField {...params} size="small" label="Athlète"
                             placeholder="N° dossard ou nom…"
                             InputProps={{
                               ...params.InputProps,
                               startAdornment: (
                                 <>
-                                  <Tooltip title="Tapez le numéro de dossard directement, ou recherchez par nom (2+ lettres)" placement="top">
+                                  <Tooltip
+                                    title="Recherche dans la base de données locale de la FLA. Attention : cette liste n'est pas toujours à jour — les licences les plus récentes peuvent ne pas encore y figurer. Dans ce cas, saisissez le prénom et le nom manuellement ci-dessous."
+                                    placement="top"
+                                  >
                                     <InfoOutlinedIcon sx={{ fontSize: 15, color: '#94A3B8', mr: 0.5, cursor: 'help', flexShrink: 0 }} />
                                   </Tooltip>
                                   {params.InputProps.startAdornment}
