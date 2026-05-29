@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box, TextField, Button, Select, MenuItem, FormControl, InputLabel,
   CircularProgress, Typography, Grid, IconButton, Chip, Paper, Divider,
@@ -22,7 +22,6 @@ const clubs = [
   'CS du Nord', 'LIAL Luxembourg', 'RBUAP', 'TRILUX', 'TRISPEED Mamer', 'X3M', 'FLA-IND',
 ];
 
-// Maps athletes.json club names → dropdown values
 const CLUB_NORMALIZE = {
   'CSL':                                         'CS Luxembourg',
   'CA FOLA  Esch/Alzette':                       'CA FOLA',
@@ -39,6 +38,42 @@ const categories = [
   '-','U12 Débutant(e)','U14 Scolaire','U16 Minime','U18 Cadet(te)',
   'U20 Junior','U23 Espoir','Senior','Masters',
 ];
+
+// ── dd/mm/yyyy date field (stores ISO YYYY-MM-DD internally) ──────────────────
+function DateField({ value, onChange, label, required, sx }) {
+  const toDisplay = iso => {
+    if (!iso) return '';
+    const [y, m, d] = iso.split('-');
+    return (d && m && y) ? `${d}/${m}/${y}` : iso;
+  };
+  const toISO = str => {
+    const match = str.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    return match ? `${match[3]}-${match[2]}-${match[1]}` : '';
+  };
+
+  const [raw, setRaw] = useState(() => toDisplay(value));
+  useEffect(() => { setRaw(toDisplay(value)); }, [value]); // eslint-disable-line
+
+  const handleChange = e => {
+    const digits = e.target.value.replace(/\D/g, '').slice(0, 8);
+    let formatted = digits;
+    if (digits.length > 2) formatted = `${digits.slice(0, 2)}/${digits.slice(2)}`;
+    if (digits.length > 4) formatted = `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+    setRaw(formatted);
+    const iso = toISO(formatted);
+    if (iso || formatted === '') onChange(iso);
+  };
+
+  return (
+    <TextField
+      size="small" label={label} required={required}
+      value={raw} onChange={handleChange}
+      placeholder="jj/mm/aaaa"
+      inputProps={{ maxLength: 10 }}
+      sx={sx}
+    />
+  );
+}
 
 // ── Section heading ───────────────────────────────────────────────────────────
 function SectionHeader({ icon, title, onRemove, removeDisabled }) {
@@ -70,7 +105,7 @@ function AthleteBlock({ ath, ci, ai, club, onUpdate, onRemove, removeDisabled, e
     ? athletes.filter(a => normalizeClub(a.club) === club)
     : athletes;
 
-  const handleFlaSelect = (val) => {
+  const handleFlaSelect = val => {
     if (val) {
       onUpdate({
         firstName:     val.firstName,
@@ -88,6 +123,7 @@ function AthleteBlock({ ath, ci, ai, club, onUpdate, onRemove, removeDisabled, e
 
   const sexErr      = errors[`${ci}_${ai}_sex`];
   const categoryErr = errors[`${ci}_${ai}_category`];
+  const eventsErr   = errors[`${ci}_${ai}_events`];
 
   return (
     <Paper variant="outlined" sx={{ borderRadius: 2, overflow: 'hidden', borderColor: '#E2E8F0' }}>
@@ -128,7 +164,7 @@ function AthleteBlock({ ath, ci, ai, club, onUpdate, onRemove, removeDisabled, e
                   String(a.bib || '').includes(q)
                 ).slice(0, 30);
               }}
-              noOptionsText="Tapez au moins 2 lettres pour chercher…"
+              noOptionsText="Tapez au moins 2 lettres…"
               renderOption={(props, a) => (
                 <Box component="li" {...props} key={a.licenceNumber}>
                   <Box>
@@ -161,8 +197,10 @@ function AthleteBlock({ ath, ci, ai, club, onUpdate, onRemove, removeDisabled, e
 
         {/* ── Row 2 : Catégorie · Sexe ── */}
         <Grid container spacing={1.5} alignItems="flex-start">
-          <Grid item xs={12} sm={6}>
-            <FormControl fullWidth required size="small" error={Boolean(categoryErr)}>
+          <Grid item xs={6} sm={5}>
+            <FormControl fullWidth required size="small"
+              error={Boolean(categoryErr)}
+              sx={{ minWidth: 150 }}>
               <InputLabel>Catégorie</InputLabel>
               <Select value={ath.category} label="Catégorie"
                 onChange={e => onUpdate({ category: e.target.value })}>
@@ -171,8 +209,11 @@ function AthleteBlock({ ath, ci, ai, club, onUpdate, onRemove, removeDisabled, e
               {categoryErr && <FormHelperText>{categoryErr}</FormHelperText>}
             </FormControl>
           </Grid>
-          <Grid item xs={12} sm={6}>
-            <Typography variant="caption" sx={{ display: 'block', mb: 0.75, fontSize: '0.78rem', color: sexErr ? 'error.main' : 'text.secondary' }}>
+          <Grid item xs={6} sm={7}>
+            <Typography variant="caption" sx={{
+              display: 'block', mb: 0.75, fontSize: '0.78rem',
+              color: sexErr ? 'error.main' : 'text.secondary',
+            }}>
               Sexe *
             </Typography>
             <Box sx={{ display: 'flex', gap: 1 }}>
@@ -213,9 +254,13 @@ function AthleteBlock({ ath, ci, ai, club, onUpdate, onRemove, removeDisabled, e
 
         {/* Events */}
         <Box>
-          <Typography variant="caption" color="text.secondary"
-            sx={{ display: 'block', mb: 0.75, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', fontSize: '0.68rem' }}>
-            Épreuves
+          <Typography variant="caption"
+            sx={{
+              display: 'block', mb: 0.75, fontWeight: 600,
+              textTransform: 'uppercase', letterSpacing: '0.04em', fontSize: '0.68rem',
+              color: eventsErr ? 'error.main' : 'text.secondary',
+            }}>
+            Épreuves *
           </Typography>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
             {ath.events.map((ev, ei) => (
@@ -228,6 +273,7 @@ function AthleteBlock({ ath, ci, ai, club, onUpdate, onRemove, removeDisabled, e
                   ListboxProps={{ sx: { maxHeight: 400 } }}
                   renderInput={params => (
                     <TextField {...params} size="small" fullWidth
+                      error={Boolean(eventsErr && ei === 0)}
                       placeholder="ex: 100m, Saut en hauteur…" />
                   )}
                 />
@@ -242,8 +288,11 @@ function AthleteBlock({ ath, ci, ai, club, onUpdate, onRemove, removeDisabled, e
                 </IconButton>
               </Box>
             ))}
+            {eventsErr && (
+              <FormHelperText error sx={{ ml: 0, mt: 0 }}>{eventsErr}</FormHelperText>
+            )}
             <Button type="button" size="small" variant="outlined" startIcon={<AddIcon />}
-              onClick={e => { e.preventDefault(); onUpdate({ events: [...ath.events, ''] }); }}
+              onClick={e => { e.preventDefault(); e.stopPropagation(); onUpdate({ events: [...ath.events, ''] }); }}
               sx={{ alignSelf: 'flex-start', mt: 0.25 }}>
               Épreuve
             </Button>
@@ -274,6 +323,7 @@ export default function AuthorisationForm({ userProfile, onSubmitSuccess }) {
   const [firstName, setFirstName] = useState(userProfile?.firstName || '');
   const [lastName, setLastName]   = useState(userProfile?.lastName  || '');
   const [emailsCc, setEmailsCc]   = useState([]);
+  const [ccInput, setCcInput]     = useState('');
   const [remarks, setRemarks]     = useState('');
   const [loading, setLoading]     = useState(false);
   const [athErrors, setAthErrors] = useState({});
@@ -284,7 +334,7 @@ export default function AuthorisationForm({ userProfile, onSubmitSuccess }) {
   // Competition helpers
   const updComp    = (ci, f, v)  => setCompetitions(u => { const x=[...u]; x[ci]={...x[ci],[f]:v}; return x; });
   const updDate    = (ci, di, v) => setCompetitions(u => { const x=[...u]; x[ci].dates=x[ci].dates.map((d,i)=>i===di?v:d); return x; });
-  const addDate    = (ci)        => setCompetitions(u => { const x=[...u]; x[ci].dates=[...x[ci].dates,'']; return x; });
+  const addDate    = ci          => setCompetitions(u => { const x=[...u]; x[ci].dates=[...x[ci].dates,'']; return x; });
   const removeDate = (ci, di)    => setCompetitions(u => {
     const x=[...u]; const next=x[ci].dates.filter((_,i)=>i!==di); x[ci].dates=next.length?next:[''];return x;
   });
@@ -302,16 +352,27 @@ export default function AuthorisationForm({ userProfile, onSubmitSuccess }) {
     const x=[...u]; x[ci].athletes=x[ci].athletes.filter((_,i)=>i!==ai); return x;
   });
 
+  // CC chip helpers
+  const addCcEmail = val => {
+    const v = (val || ccInput).trim();
+    if (v && isValidEmail(v) && !emailsCc.includes(v)) {
+      setEmailsCc(prev => [...prev, v]);
+    }
+    setCcInput('');
+  };
+  const removeCcEmail = idx => setEmailsCc(prev => prev.filter((_, i) => i !== idx));
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
 
-    // Validate sex + category for every athlete
+    // Validate sex + category + events for every athlete
     const newAthErrors = {};
     competitions.forEach((comp, ci) => {
       comp.athletes.forEach((a, ai) => {
-        if (!a.sex) newAthErrors[`${ci}_${ai}_sex`] = 'Sexe obligatoire';
-        if (!a.category || a.category === '-') newAthErrors[`${ci}_${ai}_category`] = 'Catégorie obligatoire';
+        if (!a.sex)                                        newAthErrors[`${ci}_${ai}_sex`]      = 'Sexe obligatoire';
+        if (!a.category || a.category === '-')             newAthErrors[`${ci}_${ai}_category`]  = 'Catégorie obligatoire';
+        if (!a.events || !a.events.some(ev => ev.trim())) newAthErrors[`${ci}_${ai}_events`]    = 'Au moins une épreuve obligatoire';
       });
     });
     if (Object.keys(newAthErrors).length > 0) {
@@ -381,7 +442,7 @@ export default function AuthorisationForm({ userProfile, onSubmitSuccess }) {
 
       if (onSubmitSuccess) onSubmitSuccess();
       setClub(prefillClub); setEmail(''); setFirstName(''); setLastName('');
-      setEmailsCc([]); setRemarks('');
+      setEmailsCc([]); setCcInput(''); setRemarks('');
       setCompetitions([blankCompetition()]);
     } catch (err) {
       console.error(err);
@@ -403,7 +464,8 @@ export default function AuthorisationForm({ userProfile, onSubmitSuccess }) {
         </Box>
         <Box sx={{ p: 2.5 }}>
           <Grid container spacing={2}>
-            <Grid item xs={12} sm={6} md={4}>
+            {/* Row 1: Club · Prénom · Nom */}
+            <Grid item xs={12} sm={4}>
               <FormControl fullWidth required size="small">
                 <InputLabel>Club</InputLabel>
                 <Select value={club} label="Club" onChange={e => setClub(e.target.value)}>
@@ -411,39 +473,55 @@ export default function AuthorisationForm({ userProfile, onSubmitSuccess }) {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} sm={6} md={4}>
+            <Grid item xs={12} sm={4}>
               <TextField fullWidth required size="small" label="Prénom du demandeur"
                 value={firstName} onChange={e => setFirstName(e.target.value)} />
             </Grid>
-            <Grid item xs={12} sm={6} md={4}>
+            <Grid item xs={12} sm={4}>
               <TextField fullWidth required size="small" label="Nom du demandeur"
                 value={lastName} onChange={e => setLastName(e.target.value)} />
             </Grid>
+
+            {/* Row 2: Email · CC */}
             <Grid item xs={12} sm={6}>
               <TextField fullWidth required size="small" type="email" label="Email du demandeur"
                 value={email} onChange={e => setEmail(e.target.value)} />
             </Grid>
             <Grid item xs={12} sm={6}>
-              <Autocomplete
-                multiple freeSolo fullWidth
-                options={[]}
-                value={emailsCc}
-                onChange={(_, newValue) => {
-                  const last = newValue[newValue.length - 1];
-                  if (last && !isValidEmail(last.trim())) return;
-                  setEmailsCc(newValue.map(v => v.trim()).filter(Boolean));
-                }}
-                renderTags={(value, getTagProps) =>
-                  value.map((option, index) => (
-                    <Chip key={index} label={option} size="small" variant="outlined"
-                      sx={{ fontSize: '0.78rem' }} {...getTagProps({ index })} />
-                  ))
-                }
-                renderInput={params => (
-                  <TextField {...params} fullWidth size="small" label="Emails en copie (CC)"
-                    placeholder={emailsCc.length === 0 ? 'Tapez un email et appuyez sur Entrée…' : ''} />
-                )}
-              />
+              {/* ── CC chip input ── */}
+              <Box sx={{
+                border: '1px solid #C4C4C4', borderRadius: 1, px: 1.25, py: 0.75,
+                minHeight: 40, display: 'flex', flexWrap: 'wrap', gap: 0.5, alignItems: 'center',
+                '&:focus-within': { borderColor: 'primary.main', borderWidth: '2px', mx: '-1px' },
+              }}>
+                <Typography variant="caption" sx={{
+                  position: 'absolute', mt: -2.5, ml: -0.75, px: 0.5,
+                  bgcolor: 'white', color: '#666', fontSize: '0.75rem',
+                  pointerEvents: 'none',
+                }}>
+                  Emails en copie (CC)
+                </Typography>
+                {emailsCc.map((addr, i) => (
+                  <Chip key={i} label={addr} size="small" variant="outlined"
+                    onDelete={() => removeCcEmail(i)}
+                    sx={{ fontSize: '0.78rem', height: 24 }} />
+                ))}
+                <input
+                  type="email"
+                  value={ccInput}
+                  onChange={e => setCcInput(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addCcEmail(); }
+                    if (e.key === 'Backspace' && !ccInput && emailsCc.length > 0) removeCcEmail(emailsCc.length - 1);
+                  }}
+                  onBlur={() => addCcEmail()}
+                  placeholder={emailsCc.length === 0 ? 'email@exemple.com, Entrée pour ajouter…' : ''}
+                  style={{
+                    border: 'none', outline: 'none', flex: 1, minWidth: 160,
+                    fontSize: '0.875rem', background: 'transparent', padding: '2px 0',
+                  }}
+                />
+              </Box>
             </Grid>
           </Grid>
         </Box>
@@ -493,10 +571,12 @@ export default function AuthorisationForm({ userProfile, onSubmitSuccess }) {
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, alignItems: 'center' }}>
                 {comp.dates.map((d, di) => (
                   <Box key={di} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <TextField type="date" label={`Jour ${di + 1}`} size="small"
-                      InputLabelProps={{ shrink: true }}
-                      value={d} onChange={e => updDate(ci, di, e.target.value)}
-                      sx={{ width: 160 }} />
+                    <DateField
+                      label={`Jour ${di + 1}`}
+                      value={d}
+                      onChange={v => updDate(ci, di, v)}
+                      sx={{ width: 160 }}
+                    />
                     <IconButton size="small" onClick={() => removeDate(ci, di)}
                       disabled={comp.dates.length === 1}
                       sx={{ color: 'error.light', opacity: comp.dates.length === 1 ? 0.3 : 1 }}>
@@ -505,7 +585,7 @@ export default function AuthorisationForm({ userProfile, onSubmitSuccess }) {
                   </Box>
                 ))}
                 <Button type="button" variant="outlined" size="small" startIcon={<AddIcon />}
-                  onClick={e => { e.preventDefault(); addDate(ci); }}>
+                  onClick={e => { e.preventDefault(); e.stopPropagation(); addDate(ci); }}>
                   Jour
                 </Button>
               </Box>

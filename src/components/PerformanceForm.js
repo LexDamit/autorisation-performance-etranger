@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box, TextField, Button, Select, MenuItem, FormControl, InputLabel,
   Typography, Grid, IconButton, Chip, FormHelperText, Tooltip,
@@ -39,6 +39,42 @@ const categories = [
   '-','U12 Débutant(e)','U14 Scolaire','U16 Minime','U18 Cadet(te)',
   'U20 Junior','U23 Espoir','Senior','Masters',
 ];
+
+// ── dd/mm/yyyy date field ─────────────────────────────────────────────────────
+function DateField({ value, onChange, label, required, sx, error, helperText }) {
+  const toDisplay = iso => {
+    if (!iso) return '';
+    const [y, m, d] = iso.split('-');
+    return (d && m && y) ? `${d}/${m}/${y}` : iso;
+  };
+  const toISO = str => {
+    const match = str.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    return match ? `${match[3]}-${match[2]}-${match[1]}` : '';
+  };
+  const [raw, setRaw] = useState(() => toDisplay(value));
+  useEffect(() => { setRaw(toDisplay(value)); }, [value]); // eslint-disable-line
+
+  const handleChange = e => {
+    const digits = e.target.value.replace(/\D/g, '').slice(0, 8);
+    let formatted = digits;
+    if (digits.length > 2) formatted = `${digits.slice(0, 2)}/${digits.slice(2)}`;
+    if (digits.length > 4) formatted = `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+    setRaw(formatted);
+    const iso = toISO(formatted);
+    if (iso || formatted === '') onChange(iso);
+  };
+
+  return (
+    <TextField
+      size="small" label={label} required={required}
+      value={raw} onChange={handleChange}
+      placeholder="jj/mm/aaaa"
+      inputProps={{ maxLength: 10 }}
+      error={error} helperText={helperText}
+      sx={sx}
+    />
+  );
+}
 
 // ── Section heading ───────────────────────────────────────────────────────────
 function SectionHeader({ icon, title, onRemove, removeDisabled }) {
@@ -339,13 +375,14 @@ export default function PerformanceForm({ userProfile, prefill, docId, onSubmitS
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, alignItems: 'center' }}>
                     {comp.dates.map((d, di) => (
                       <Box key={di} sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
-                        <TextField type="date" size="small"
+                        <DateField
                           label={comp.dates.length > 1 ? `Jour ${di + 1}` : 'Date'}
-                          InputLabelProps={{ shrink: true }}
-                          value={d} onChange={e => updDate(ci, di, e.target.value)}
+                          value={d}
+                          onChange={v => updDate(ci, di, v)}
                           error={di === 0 && hasError(`comp[${ci}].date`)}
                           helperText={di === 0 ? getError(`comp[${ci}].date`) : ''}
-                          sx={{ width: 165 }} />
+                          sx={{ width: 165 }}
+                        />
                         {comp.dates.length > 1 && (
                           <IconButton size="small" onClick={() => removeDate(ci, di)}
                             sx={{ color: 'error.light' }}>
@@ -355,7 +392,7 @@ export default function PerformanceForm({ userProfile, prefill, docId, onSubmitS
                       </Box>
                     ))}
                     <Button type="button" variant="outlined" size="small" startIcon={<AddIcon />}
-                      onClick={e => { e.preventDefault(); addDate(ci); }} sx={{ height: 40, whiteSpace: 'nowrap' }}>
+                      onClick={e => { e.preventDefault(); e.stopPropagation(); addDate(ci); }} sx={{ height: 40, whiteSpace: 'nowrap' }}>
                       + Jour
                     </Button>
                   </Box>
@@ -458,8 +495,9 @@ export default function PerformanceForm({ userProfile, prefill, docId, onSubmitS
 
                       {/* ── Row 2 : Catégorie · Sexe ── */}
                       <Grid container spacing={1.5} alignItems="flex-start">
-                        <Grid item xs={12} sm={6}>
+                        <Grid item xs={6} sm={5}>
                           <FormControl fullWidth required size="small"
+                            sx={{ minWidth: 150 }}
                             error={hasError(`comp[${ci}].ath[${ai}].category`)}>
                             <InputLabel>Catégorie</InputLabel>
                             <Select value={ath.category} label="Catégorie"
@@ -469,7 +507,7 @@ export default function PerformanceForm({ userProfile, prefill, docId, onSubmitS
                             <FormHelperText>{getError(`comp[${ci}].ath[${ai}].category`)}</FormHelperText>
                           </FormControl>
                         </Grid>
-                        <Grid item xs={12} sm={6}>
+                        <Grid item xs={6} sm={7}>
                           <Typography variant="caption"
                             sx={{ display: 'block', mb: 0.75, fontSize: '0.78rem',
                               color: hasError(`comp[${ci}].ath[${ai}].sex`) ? 'error.main' : 'text.secondary' }}>
