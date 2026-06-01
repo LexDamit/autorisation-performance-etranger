@@ -19,6 +19,7 @@ const DRAWER_WIDTH = 252;
 
 const ROLE_STYLES = {
   athlete:          { bg: '#EEF2FF', color: '#3730A3', label: 'Athlète' },
+  shared_account:   { bg: '#FFF7ED', color: '#C2410C', label: 'Compte partagé' },
   club:             { bg: '#F0FDF4', color: '#166534', label: 'Club' },
   federation_staff: { bg: '#FFF7ED', color: '#9A3412', label: 'Fédération Staff' },
   admin:            { bg: '#FDF2F8', color: '#86198F', label: 'Administrateur' },
@@ -26,6 +27,7 @@ const ROLE_STYLES = {
 
 const PREVIEW_ROLES = [
   { value: 'athlete',          label: 'Athlète',          color: '#EEF2FF', textColor: '#3730A3' },
+  { value: 'shared_account',   label: 'Compte partagé',   color: '#FFF7ED', textColor: '#C2410C' },
   { value: 'club',             label: 'Club',             color: '#F0FDF4', textColor: '#166534' },
   { value: 'federation_staff', label: 'Staff Fédération', color: '#FFF7ED', textColor: '#9A3412' },
 ];
@@ -34,7 +36,7 @@ function buildNavSections(role) {
   const sections = [];
 
   const base = [{ key: 'home', label: 'Accueil', icon: <HomeIcon fontSize="small" /> }];
-  if (role === 'athlete' || role === 'club' || role === 'admin') {
+  if (role === 'athlete' || role === 'shared_account' || role === 'club' || role === 'admin') {
     base.push(
       { key: 'authorisation', label: 'Autorisations', icon: <AssignmentIcon fontSize="small" /> },
       { key: 'performance',   label: 'Performances',  icon: <SpeedIcon fontSize="small" /> },
