@@ -94,8 +94,8 @@ function AthleteBlock({ ath, ci, ai, club, role, onUpdate, onRemove, removeDisab
 
   // Club role: restrict to own club. Bib-only roles: all clubs (they enter bib directly).
   const options = (role === 'club' && club && club !== '-')
-    ? athletes.filter(a => a.club === club)
-    : athletes;
+    ? athletes.filter(a => a && a.club === club)
+    : athletes.filter(Boolean);
 
   const handleFlaSelect = val => {
     if (val) {

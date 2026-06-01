@@ -269,8 +269,8 @@ export default function PerformanceForm({ userProfile, prefill, docId, onSubmitS
 
   // Club: search within own club only. Bib-only roles: all clubs (find by bib number).
   const flaOptions = () => (role === 'club' && club && club !== '-')
-    ? athletes.filter(a => a.club === club)
-    : athletes;
+    ? athletes.filter(a => a && a.club === club)
+    : athletes.filter(Boolean);
 
   return (
     <Box component="form" onSubmit={handleSubmit}
