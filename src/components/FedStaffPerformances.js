@@ -183,7 +183,7 @@ function SeltecPanel({
     setAutoMatches(newMatches);
 
     // Fill name search from athletes.json (by bib first, then by name)
-    const byBib = athletes.find(a => String(a.bib) === bibInput.trim());
+    const byBib = athletes.find(a => a && String(a.bib) === bibInput.trim());
     if (byBib) { setSelectedAthOpt(byBib); return; }
     const fn = (data.firstname || '').toLowerCase().trim();
     const ln = (data.name || '').toLowerCase().trim();
@@ -321,22 +321,22 @@ function SeltecPanel({
       <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap', mb: 2 }}>
         <Autocomplete
           value={selectedAthOpt}
-          options={athletes.filter(a => a.bib)}
+          options={athletes.filter(a => a && a.bib)}
           getOptionLabel={a => `${a.firstName} ${a.lastName}`}
-          isOptionEqualToValue={(o, v) => o.licenceNumber === v.licenceNumber}
+          isOptionEqualToValue={(o, v) => o.bib === v.bib}
           filterOptions={(opts, { inputValue }) => {
             const q = inputValue.toLowerCase();
             return opts.filter(a =>
-              a.firstName.toLowerCase().includes(q) || a.lastName.toLowerCase().includes(q)
+              (a.firstName || '').toLowerCase().includes(q) || (a.lastName || '').toLowerCase().includes(q)
             ).slice(0, 40);
           }}
           onChange={(_, val) => { setSelectedAthOpt(val); if (val?.bib) setBibInput(String(val.bib)); }}
           renderOption={(props, a) => (
-            <Box component="li" {...props} key={a.licenceNumber}>
+            <Box component="li" {...props} key={a.bib}>
               <Box>
                 <Typography variant="body2" fontWeight={500}>{a.firstName} {a.lastName}</Typography>
                 <Typography variant="caption" color="text.secondary">
-                  Dossard #{a.bib} · {a.category} · {a.club}
+                  Dossard #{a.bib} · {a.club}
                 </Typography>
               </Box>
             </Box>
