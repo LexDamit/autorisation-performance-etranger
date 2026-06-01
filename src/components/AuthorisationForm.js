@@ -138,7 +138,8 @@ function AthleteBlock({ ath, ci, ai, club, role, onUpdate, onRemove, removeDisab
             const q = inputValue.trim();
             if (!q) return [];
             if (/^\d+$/.test(q)) {
-              // Bib search: available to all roles
+              // Bib-only roles: require 4 digits before showing results (privacy)
+              if (bibOnly && q.length < 4) return [];
               return opts.filter(a => String(a.bib || '').startsWith(q)).slice(0, 20);
             }
             // Name search: only for club / staff / admin
@@ -149,7 +150,7 @@ function AthleteBlock({ ath, ci, ai, club, role, onUpdate, onRemove, removeDisab
             return opts.filter(a => norm(`${a.firstName} ${a.lastName}`).includes(ql)).slice(0, 40);
           }}
           noOptionsText={bibOnly
-            ? 'Tapez votre numéro de dossard'
+            ? 'Tapez les 4 chiffres de votre dossard'
             : 'Aucun résultat — tapez un n° dossard ou 2+ lettres du nom'
           }
           componentsProps={{ popper: { style: { minWidth: 360 } } }}

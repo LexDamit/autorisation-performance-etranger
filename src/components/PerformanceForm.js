@@ -445,6 +445,8 @@ export default function PerformanceForm({ userProfile, prefill, docId, onSubmitS
                           const q = inputValue.trim();
                           if (!q) return [];
                           if (/^\d+$/.test(q)) {
+                            // Bib-only roles: require 4 digits before showing results (privacy)
+                            if (bibOnly && q.length < 4) return [];
                             return opts.filter(a => String(a.bib || '').startsWith(q)).slice(0, 20);
                           }
                           if (bibOnly) return [];
@@ -454,7 +456,7 @@ export default function PerformanceForm({ userProfile, prefill, docId, onSubmitS
                           return opts.filter(a => norm(`${a.firstName} ${a.lastName}`).includes(ql)).slice(0, 40);
                         }}
                         noOptionsText={bibOnly
-                          ? 'Tapez votre numéro de dossard'
+                          ? 'Tapez les 4 chiffres de votre dossard'
                           : 'Aucun résultat — tapez un n° dossard ou 2+ lettres du nom'
                         }
                         componentsProps={{ popper: { style: { minWidth: 360 } } }}
